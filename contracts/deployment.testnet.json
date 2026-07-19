@@ -1,0 +1,17 @@
+{
+  "network": "TESTNET",
+  "networkPassphrase": "Test SDF Network ; September 2015",
+  "rpcUrl": "https://soroban-testnet.stellar.org",
+  "contractId": "CAQVSBNVL7OI66IDTYCR7XL4VJKMSOYGBW5D6SWLTWTINTCQO2OGCSXS",
+  "tokenId": "CA3DMMHKAEV555MKWZB5AFXWB6LVZRETYNUO5ZCFGSENQOC7A2FL5HNU",
+  "tokenSymbol": "USDC",
+  "tokenDecimals": 7,
+  "adminAddress": "GBTDIHYJA4OPTDBDRKH5A5PHBSH7QVAEY46V27DCB24SXNRXIQNHSNUM",
+  "usdcIssuer": "GDYPHJ7H2DO6OUWD5ZJRLFT57QNUZYOWBBYEHEQBAGJDFBAAFJWMXSNU",
+  "wasmHash": "78410e8b40d3a0dc5473a44eb616c3573d15dcfdf78c3c1dcd9925baf9b54865",
+  "explorer": {
+    "contract": "https://stellar.expert/explorer/testnet/contract/CAQVSBNVL7OI66IDTYCR7XL4VJKMSOYGBW5D6SWLTWTINTCQO2OGCSXS",
+    "token": "https://stellar.expert/explorer/testnet/contract/CA3DMMHKAEV555MKWZB5AFXWB6LVZRETYNUO5ZCFGSENQOC7A2FL5HNU"
+  },
+  "deployedAt": "2026-07-19"
+}

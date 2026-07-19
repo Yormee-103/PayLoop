@@ -37,9 +37,11 @@ Full design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | Item | Value |
 | --- | --- |
 | Network | Stellar Testnet |
-| Contract address | _filled in after deploy — see `contracts/DEPLOYMENT.md`_ |
-| Payment token | Test USDC (Stellar Asset Contract) |
+| Invoice contract | [`CAQVSBNVL7OI66IDTYCR7XL4VJKMSOYGBW5D6SWLTWTINTCQO2OGCSXS`](https://stellar.expert/explorer/testnet/contract/CAQVSBNVL7OI66IDTYCR7XL4VJKMSOYGBW5D6SWLTWTINTCQO2OGCSXS) |
+| Payment token (test USDC SAC) | [`CA3DMMHKAEV555MKWZB5AFXWB6LVZRETYNUO5ZCFGSENQOC7A2FL5HNU`](https://stellar.expert/explorer/testnet/contract/CA3DMMHKAEV555MKWZB5AFXWB6LVZRETYNUO5ZCFGSENQOC7A2FL5HNU) |
 | Live app | _Vercel URL after deploy_ |
+
+Full deployment metadata: [`contracts/deployment.testnet.json`](contracts/deployment.testnet.json).
 
 ## Local development
 

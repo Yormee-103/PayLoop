@@ -1,0 +1,19 @@
+[package]
+name = "payloop-invoice"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+# Pin: ed25519-dalek 3.0.0 breaks soroban-env-host's testutils PRNG bound.
+# soroban-env-host requests ">=2.0.0"; hold it on the 2.x line.
+ed25519-dalek = "=2.2.0"

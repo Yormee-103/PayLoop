@@ -6,7 +6,7 @@ capture.
 
 ## Live app
 
-- **URL:** _add the Vercel URL here after deploy_
+- **URL:** https://pay-loop-neon.vercel.app
 - **Network:** Stellar **Testnet** (set Freighter to Testnet)
 - **Contract:** [`CAQVSBNVL7OI66IDTYCR7XL4VJKMSOYGBW5D6SWLTWTINTCQO2OGCSXS`](https://stellar.expert/explorer/testnet/contract/CAQVSBNVL7OI66IDTYCR7XL4VJKMSOYGBW5D6SWLTWTINTCQO2OGCSXS)
 

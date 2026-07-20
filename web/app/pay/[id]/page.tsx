@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useWallet } from "@/components/WalletProvider";
 import { Alert, Spinner, StatusBadge, TxLink } from "@/components/ui";
 import { TrustlineButton } from "@/components/TrustlineButton";
+import { FaucetButton } from "@/components/FaucetButton";
 import {
   fundInvoice,
   getInvoice,
@@ -183,9 +184,21 @@ export default function PayPage({
               <>
                 {insufficient && (
                   <Alert kind="info">
-                    Your balance is {formatAmount(balance ?? 0n)}{" "}
-                    {config.tokenSymbol}. Grab test USDC from the dashboard
-                    faucet first.
+                    <p>
+                      Your balance is {formatAmount(balance ?? 0n)}{" "}
+                      {config.tokenSymbol}, but this invoice is for{" "}
+                      {formatAmount(invoice.amount)} {config.tokenSymbol}. Grab
+                      test {config.tokenSymbol} to continue:
+                    </p>
+                    <div className="mt-2">
+                      <FaucetButton
+                        onDone={() =>
+                          getTokenBalance(address)
+                            .then(setBalance)
+                            .catch(() => {})
+                        }
+                      />
+                    </div>
                   </Alert>
                 )}
                 <button

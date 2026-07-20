@@ -4,10 +4,12 @@ import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@/components/WalletProvider";
 import { Alert, Spinner, StatusBadge, TxLink } from "@/components/ui";
+import { TrustlineButton } from "@/components/TrustlineButton";
 import {
   fundInvoice,
   getInvoice,
   getTokenBalance,
+  hasUsdcTrustline,
   type Invoice,
 } from "@/lib/contract";
 import { formatAmount, formatDate, shortAddress } from "@/lib/format";
@@ -27,6 +29,7 @@ export default function PayPage({
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paidHash, setPaidHash] = useState<string | null>(null);
+  const [trusted, setTrusted] = useState<boolean | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -50,7 +53,12 @@ export default function PayPage({
   }, [load]);
 
   useEffect(() => {
-    if (address) getTokenBalance(address).then(setBalance).catch(() => {});
+    if (!address) {
+      setTrusted(null);
+      return;
+    }
+    getTokenBalance(address).then(setBalance).catch(() => {});
+    hasUsdcTrustline(address).then(setTrusted).catch(() => setTrusted(null));
   }, [address, paidHash]);
 
   async function pay() {
@@ -169,6 +177,8 @@ export default function PayPage({
                 This invoice is addressed to {shortAddress(invoice.client)}.
                 Connect that wallet to pay it.
               </Alert>
+            ) : trusted === false ? (
+              <TrustlineButton onDone={() => setTrusted(true)} />
             ) : (
               <>
                 {insufficient && (

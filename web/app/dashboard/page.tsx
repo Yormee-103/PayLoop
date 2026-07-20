@@ -9,6 +9,7 @@ import { getInvoiceHistory, getTokenBalance, type Invoice } from "@/lib/contract
 import { formatAmount } from "@/lib/format";
 import { config, isConfigured } from "@/lib/config";
 import { FaucetButton } from "@/components/FaucetButton";
+import { TrustlineButton } from "@/components/TrustlineButton";
 
 export default function DashboardPage() {
   const { address, connect, connecting } = useWallet();
@@ -107,6 +108,8 @@ export default function DashboardPage() {
       </div>
 
       {error && <Alert kind="error">{error}</Alert>}
+
+      <TrustlineButton onDone={load} />
 
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Your invoices</h2>

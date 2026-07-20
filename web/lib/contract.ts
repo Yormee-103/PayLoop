@@ -4,9 +4,12 @@
 
 import {
   Address,
+  Asset,
   BASE_FEE,
   Contract,
+  Horizon,
   nativeToScVal,
+  Operation,
   scValToNative,
   TransactionBuilder,
   xdr,
@@ -235,4 +238,59 @@ export async function fundInvoice(
     nativeToScVal(BigInt(invoiceId), { type: "u64" }),
   ]);
   return { hash };
+}
+
+// --- Trustline (classic asset behind the USDC SAC) ------------------------
+
+function usdcAsset(): Asset {
+  return new Asset(config.tokenSymbol, config.tokenIssuer);
+}
+
+function horizon(): Horizon.Server {
+  return new Horizon.Server(config.horizonUrl, {
+    allowHttp: config.horizonUrl.startsWith("http://"),
+  });
+}
+
+// True if `address` already trusts the USDC asset (can hold/send it). The
+// issuer itself implicitly "has" the asset and never needs a trustline.
+export async function hasUsdcTrustline(address: string): Promise<boolean> {
+  if (address === config.tokenIssuer) return true;
+  try {
+    const account = await horizon().loadAccount(address);
+    return account.balances.some(
+      (b: any) =>
+        b.asset_code === config.tokenSymbol &&
+        b.asset_issuer === config.tokenIssuer
+    );
+  } catch {
+    // Account not found / network error: treat as no trustline so the UI
+    // prompts the user (funding an unfunded account is a separate concern).
+    return false;
+  }
+}
+
+// Builds a changeTrust op for the USDC asset, signs it via Freighter, and
+// submits through Horizon. Lets a wallet receive/hold USDC without hunting
+// for the asset in Freighter's UI.
+export async function establishUsdcTrustline(
+  address: string
+): Promise<{ hash: string }> {
+  const h = horizon();
+  const account = await h.loadAccount(address);
+  const tx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: config.networkPassphrase,
+  })
+    .addOperation(Operation.changeTrust({ asset: usdcAsset() }))
+    .setTimeout(120)
+    .build();
+
+  const signedXdr = await signXdr(tx.toXDR());
+  const signedTx = TransactionBuilder.fromXDR(
+    signedXdr,
+    config.networkPassphrase
+  );
+  const res = await h.submitTransaction(signedTx as any);
+  return { hash: res.hash };
 }

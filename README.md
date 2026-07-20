@@ -26,11 +26,23 @@ That create → fund → release loop is PayLoop. Everything else is UX around i
 ## Architecture
 
 - **Smart contract** — `contracts/invoice`, Rust/Soroban, deployed to Stellar **testnet**. Holds invoices and performs the atomic client→freelancer USDC transfer on funding.
-- **Web app** — `web/`, Next.js (App Router) + TypeScript + Tailwind, Freighter wallet, deployed on Vercel.
+- **Web app** — `web/`, Next.js (App Router) + TypeScript + Tailwind, Freighter wallet, deployed on Vercel. Mobile-responsive, with loading/error states throughout.
 - **Observability** — Sentry (errors) + Vercel Analytics (usage).
+- **Public activity feed** — `/activity` reads every invoice straight off the contract and reports usage stats; doubles as verifiable proof of wallet interactions.
+- **Feedback** — in-app widget → `/api/feedback` (forwards to an optional webhook).
 - **Anchor off-ramp** — USDC → Naira bank payout is **mocked** for this submission with clear UX and a documented integration path. See [docs/ANCHOR.md](docs/ANCHOR.md).
 
 Full design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Features
+
+- Create an invoice on-chain (client, amount, description, optional due date).
+- Share a `/pay/<id>` link; the client funds it in one wallet click.
+- Instant settlement — USDC moves client→freelancer atomically, marked `Paid`.
+- Freelancer dashboard: invoices, balance, received/pending totals, test-USDC faucet.
+- Public on-chain activity feed with unique-wallet and settled-volume stats.
+- Mocked USDC→Naira off-ramp with a documented SEP-24 path.
+- Monitoring (Sentry) + analytics (Vercel) + in-app feedback collection.
 
 ## Deployment
 
@@ -42,6 +54,29 @@ Full design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | Live app | _Vercel URL after deploy_ |
 
 Full deployment metadata: [`contracts/deployment.testnet.json`](contracts/deployment.testnet.json).
+
+### Deploy the web app (Vercel)
+
+The app is a standard Next.js project. From `web/`:
+
+```bash
+npm install
+vercel --prod          # or import the repo in the Vercel dashboard
+```
+
+Set the root directory to `web/`. The public testnet contract/token addresses
+are baked in as defaults, so the app works with **zero** env vars. To enable the
+faucet, monitoring, or feedback forwarding, set `USDC_ISSUER_SECRET`,
+`NEXT_PUBLIC_SENTRY_DSN` (+ `SENTRY_ORG`/`SENTRY_PROJECT`), and
+`FEEDBACK_WEBHOOK_URL` in the Vercel project settings. See
+[web/.env.example](web/.env.example).
+
+## Screenshots & demo
+
+Screenshots (product UI, mobile, analytics/monitoring) live in
+[docs/screenshots/](docs/screenshots/). The demo-video script, onboarding steps,
+and how to capture proof of wallet interactions are in [DEMO.md](DEMO.md). The
+user-feedback summary is in [docs/FEEDBACK.md](docs/FEEDBACK.md).
 
 ## Local development
 
@@ -66,10 +101,20 @@ See [contracts/DEPLOYMENT.md](contracts/DEPLOYMENT.md) for the full testnet depl
 
 ```
 PayLoop/
-├── contracts/invoice/     Soroban invoice/escrow contract (Rust) + tests
-├── web/                   Next.js frontend (dashboard + payment page)
-├── docs/                  Architecture, anchor plan, screenshots
-├── DEMO.md                Demo-video + user-onboarding checklist
+├── contracts/
+│   ├── invoice/               Soroban invoice/escrow contract (Rust) + tests
+│   ├── DEPLOYMENT.md          Testnet deploy + token setup steps
+│   └── deployment.testnet.json
+├── web/                       Next.js frontend (App Router)
+│   ├── app/                   routes incl. /activity, /api/faucet, /api/feedback
+│   ├── components/            wallet provider, UI, feedback widget
+│   └── lib/                   config, wallet, contract, format
+├── docs/
+│   ├── ARCHITECTURE.md        System design
+│   ├── ANCHOR.md              Mock vs. production off-ramp (SEP-24)
+│   ├── FEEDBACK.md            User-feedback summary
+│   └── screenshots/           Submission screenshots
+├── DEMO.md                    Demo-video + user-onboarding checklist
 └── README.md
 ```
 

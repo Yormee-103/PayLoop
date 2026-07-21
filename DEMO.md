@@ -16,15 +16,22 @@ capture.
 2. Switch Freighter to **Testnet** (Settings → Network → Test Net).
 3. Fund the account with test XLM from [friendbot](https://friendbot.stellar.org)
    (Freighter offers a "Fund with Friendbot" button on testnet).
+4. **Enable USDC (one-time, required).** Open PayLoop → **Dashboard** →
+   **Enable USDC** → approve. Every wallet must do this once before it can
+   receive a payment (freelancer) or pay an invoice (client). Without it,
+   payments fail with a "trustline missing" error on-chain. The app now detects
+   this and tells you when a wallet still needs it.
 
 ## The 90-second demo script
 
 1. Open the app, click **Connect wallet** → approve in Freighter.
-2. Go to **Dashboard** → **Get test USDC** (mints 500 test USDC to the wallet).
+2. Go to **Dashboard** → **Enable USDC** (one-time) → then **Get test USDC**
+   (mints 500 test USDC to the wallet).
 3. **New invoice**: paste a second wallet as the client, enter an amount + a
    description, submit → approve the transaction. Copy the `/pay/<id>` link.
-4. Switch Freighter to the **client** account, open the pay link, click
-   **Pay** → approve. Watch it flip to **Paid** with a `stellar.expert` link.
+4. Switch Freighter to the **client** account (also Enable USDC if it's new),
+   open the pay link, click **Pay** → approve. Watch it flip to **Paid** with a
+   `stellar.expert` link.
 5. Open **Activity** to show the invoice in the public on-chain feed and the
    usage stats updating.
 6. Open **Withdraw** to show the (mocked) USDC→Naira off-ramp UX.

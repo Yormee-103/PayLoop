@@ -45,8 +45,15 @@ function contract(): Contract {
 
 // Map the contract's raw return (an enum/struct via scValToNative) to Invoice.
 function decodeInvoice(raw: any): Invoice {
-  const status: InvoiceStatus =
-    raw.status?.tag === "Paid" || raw.status === "Paid" ? "Paid" : "Pending";
+  // The contract's InvoiceStatus is a #[repr(u32)] enum (Pending = 0, Paid = 1),
+  // so scValToNative gives us a plain number. Older/other encodings may surface
+  // it as a { tag } object or a string, so handle all three.
+  const rawStatus = raw.status;
+  const isPaid =
+    rawStatus === 1 ||
+    rawStatus === "Paid" ||
+    rawStatus?.tag === "Paid";
+  const status: InvoiceStatus = isPaid ? "Paid" : "Pending";
   return {
     id: raw.id?.toString() ?? "0",
     freelancer: raw.freelancer?.toString?.() ?? String(raw.freelancer),

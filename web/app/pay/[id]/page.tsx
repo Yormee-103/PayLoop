@@ -31,6 +31,10 @@ export default function PayPage({
   const [error, setError] = useState<string | null>(null);
   const [paidHash, setPaidHash] = useState<string | null>(null);
   const [trusted, setTrusted] = useState<boolean | null>(null);
+  // Whether the freelancer (recipient) can receive USDC. If they haven't
+  // enabled the trustline, the transfer fails on-chain (Error #13), so we gate
+  // the Pay button on this and show a clear message instead.
+  const [freelancerReady, setFreelancerReady] = useState<boolean | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,6 +57,17 @@ export default function PayPage({
     load();
   }, [load]);
 
+  // Check the freelancer (recipient) can receive USDC whenever the invoice loads.
+  useEffect(() => {
+    if (!invoice) {
+      setFreelancerReady(null);
+      return;
+    }
+    hasUsdcTrustline(invoice.freelancer)
+      .then(setFreelancerReady)
+      .catch(() => setFreelancerReady(null));
+  }, [invoice, paidHash]);
+
   useEffect(() => {
     if (!address) {
       setTrusted(null);
@@ -71,7 +86,16 @@ export default function PayPage({
       setPaidHash(res.hash);
       await load();
     } catch (e: any) {
-      setError(e?.message ?? "Payment failed.");
+      const raw = String(e?.message ?? "");
+      // Translate the most common on-chain failure into plain language.
+      if (raw.includes("trustline entry is missing")) {
+        setFreelancerReady(false);
+        setError(
+          `The freelancer hasn't enabled ${config.tokenSymbol} yet, so they can't receive this payment. Ask them to enable it, then try again.`
+        );
+      } else {
+        setError(raw || "Payment failed.");
+      }
     } finally {
       setPaying(false);
     }
@@ -180,6 +204,29 @@ export default function PayPage({
               </Alert>
             ) : trusted === false ? (
               <TrustlineButton onDone={() => setTrusted(true)} />
+            ) : freelancerReady === false ? (
+              <Alert kind="info">
+                <p className="font-semibold">
+                  This freelancer can&apos;t receive {config.tokenSymbol} yet.
+                </p>
+                <p className="mt-1">
+                  {shortAddress(invoice.freelancer)} needs to enable{" "}
+                  {config.tokenSymbol} on their dashboard before this invoice can
+                  be paid. Ask them to open PayLoop, connect this wallet, and tap
+                  &ldquo;Enable {config.tokenSymbol}&rdquo; — then refresh this
+                  page.
+                </p>
+                <button
+                  onClick={() =>
+                    hasUsdcTrustline(invoice.freelancer)
+                      .then(setFreelancerReady)
+                      .catch(() => {})
+                  }
+                  className="btn-ghost mt-3 text-sm"
+                >
+                  Re-check
+                </button>
+              </Alert>
             ) : (
               <>
                 {insufficient && (

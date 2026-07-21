@@ -1,18 +1,18 @@
 # Screenshots
 
-Drop the submission screenshots here with these filenames so the README and
-DEMO.md links resolve:
+Submission screenshots for PayLoop.
 
-| File | What to capture |
+| File | What it shows |
 | --- | --- |
 | `landing.png` | Home / landing page |
-| `dashboard.png` | Dashboard with invoices + balance |
+| `dashboard.png` | Dashboard — balance, invoice, faucet |
 | `create.png` | New-invoice form |
-| `pay.png` | Payment page — ideally the **Paid** state with the tx link |
-| `activity.png` | `/activity` feed + usage stats (proof of wallet interactions) |
-| `mobile.png` | Any page in a narrow (mobile) viewport |
-| `analytics.png` | Vercel Analytics dashboard |
-| `monitoring.png` | Sentry issues / health (if enabled) |
-| `feedback.png` | The in-app feedback widget open |
+| `create-success.png` | Invoice created — shareable pay link + explorer tx |
+| `pay.png` | Payment page in the **Paid** state, with explorer link |
+| `activity.png` | On-chain activity feed + usage stats (proof of wallet interactions) |
+| `feedback.png` | In-app feedback widget |
+| `mobile.jpeg` | Mobile responsive view (real device) |
+| `analytics.png` | _TODO: Vercel Analytics dashboard (analytics/monitoring proof)_ |
 
-Keep images reasonably sized (< ~500 KB each). PNG or WebP.
+Note: `pay.png` shows a paid invoice with an on-chain **View on explorer** link;
+`activity.png` shows the live invoice/paid/unique-wallet counts.

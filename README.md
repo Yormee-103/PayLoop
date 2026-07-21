@@ -73,10 +73,18 @@ faucet, monitoring, or feedback forwarding, set `USDC_ISSUER_SECRET`,
 
 ## Screenshots & demo
 
-Screenshots (product UI, mobile, analytics/monitoring) live in
-[docs/screenshots/](docs/screenshots/). The demo-video script, onboarding steps,
-and how to capture proof of wallet interactions are in [DEMO.md](DEMO.md). The
-user-feedback summary is in [docs/FEEDBACK.md](docs/FEEDBACK.md).
+| | |
+| --- | --- |
+| **Landing** | **Dashboard** |
+| ![Landing](docs/screenshots/landing.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+| **Create invoice** | **Payment — paid** |
+| ![Create invoice](docs/screenshots/create.png) | ![Payment paid](docs/screenshots/pay.png) |
+| **On-chain activity** | **Mobile** |
+| ![Activity](docs/screenshots/activity.png) | ![Mobile](docs/screenshots/mobile.jpeg) |
+
+More in [docs/screenshots/](docs/screenshots/). The demo-video script, onboarding
+steps, and how to capture proof of wallet interactions are in [DEMO.md](DEMO.md).
+The user-feedback summary is in [docs/FEEDBACK.md](docs/FEEDBACK.md).
 
 ## Submission (Level 4 — Green Belt)
 

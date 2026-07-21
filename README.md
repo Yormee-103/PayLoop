@@ -78,6 +78,13 @@ Screenshots (product UI, mobile, analytics/monitoring) live in
 and how to capture proof of wallet interactions are in [DEMO.md](DEMO.md). The
 user-feedback summary is in [docs/FEEDBACK.md](docs/FEEDBACK.md).
 
+## Submission (Level 4 — Green Belt)
+
+- **Requirement-by-requirement checklist:** [SUBMISSION.md](SUBMISSION.md)
+- **Proof of user wallet interactions:** [docs/USERS.md](docs/USERS.md) +
+  the live [Activity page](https://pay-loop-neon.vercel.app/activity)
+- **User feedback summary:** [docs/FEEDBACK.md](docs/FEEDBACK.md)
+
 ## Local development
 
 Prerequisites: Node 20+, Rust + `stellar` CLI (`cargo install --locked stellar-cli`).

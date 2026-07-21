@@ -169,12 +169,15 @@ export default function ActivityPage() {
                     {formatAmount(inv.amount)} {config.tokenSymbol}
                   </span>
                 </div>
-                <div className="flex justify-between text-xs text-slate-400">
+                <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs text-slate-400">
                   <span>
                     From <WalletLink addr={inv.freelancer} />
                   </span>
                   <span>
                     To <WalletLink addr={inv.client} />
+                  </span>
+                  <span className="w-full text-slate-500">
+                    {formatDate(inv.createdAt)}
                   </span>
                 </div>
               </div>

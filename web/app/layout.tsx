@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import { WalletProvider } from "@/components/WalletProvider";
@@ -15,6 +15,12 @@ export const metadata: Metadata = {
       "Invoice foreign clients in USDC on Stellar, cash out in Naira.",
     type: "website",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0b1220",
 };
 
 export default function RootLayout({

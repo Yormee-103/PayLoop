@@ -23,11 +23,11 @@ export default function Home() {
           <span className="badge bg-brand-500/15 text-brand-200">
             Built on Stellar
           </span>
-          <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
-            Get paid by clients abroad. <br />
+          <h1 className="text-3xl font-bold leading-tight tracking-tight sm:text-5xl">
+            Get paid by clients abroad.{" "}
             <span className="text-brand-400">Cash out at home.</span>
           </h1>
-          <p className="max-w-md text-lg text-slate-400">
+          <p className="max-w-md text-base text-slate-400 sm:text-lg">
             PayLoop lets African freelancers invoice foreign clients in USDC on
             Stellar — settled in seconds, for fractions of a cent — then cash out
             to Naira.

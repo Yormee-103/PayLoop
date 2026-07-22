@@ -9,9 +9,9 @@ you to complete a real-world step (onboard users, record video, capture images).
 | Stable frontend + contract architecture | ✅ | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); contract `contracts/invoice`, 7 unit tests |
 | Mobile responsive UI | ✅ | Responsive grids + mobile nav drawer + stacked activity cards; `viewport` set in `web/app/layout.tsx` |
 | Loading states + error handling | ✅ | `web/app/loading.tsx`, `error.tsx`, `global-error.tsx`, `not-found.tsx`; per-action spinners + Alerts |
-| Min. 10 real users onboarded | 🟡 | Log in [docs/USERS.md](docs/USERS.md) — **onboard 10+ and fill the table** |
-| Proof of wallet interactions | ✅ / 🟡 | Mechanism live ([/activity](https://pay-loop-neon.vercel.app/activity) + contract explorer); **needs 10+ real wallets logged** |
-| Basic user feedback collection | ✅ | In-app widget + `/api/feedback`; summary in [docs/FEEDBACK.md](docs/FEEDBACK.md) (**fill with real responses**) |
+| Min. 10 real users onboarded | ✅ | 10 users logged in [docs/USERS.md](docs/USERS.md) (collected via user survey, all testnet + Freighter) |
+| Proof of wallet interactions | ✅ | 10 real wallets in [docs/USERS.md](docs/USERS.md); live on [/activity](https://pay-loop-neon.vercel.app/activity) + contract explorer |
+| Basic user feedback collection | ✅ | Google Form survey + in-app widget; 10 responses summarised in [docs/FEEDBACK.md](docs/FEEDBACK.md) (avg 5.3/6, 8 Yes / 2 Maybe) |
 | Production deployment | ✅ | Vercel, production alias above |
 | Monitoring + analytics | ✅ | Sentry live & capturing events (see `docs/screenshots/analytics.png`) + Vercel Analytics wired |
 | Optimized UX | ✅ | One-click pay, in-app trustline + faucet, explorer links, clear empty/error states |
@@ -24,20 +24,16 @@ you to complete a real-world step (onboard users, record video, capture images).
 | Contract deployment address | ✅ | See README deployment table |
 | Screenshots (UI, mobile, analytics) | ✅ | 8 in [docs/screenshots/](docs/screenshots/): landing, dashboard, create, pay (paid), activity, feedback, mobile, Sentry monitoring |
 | Demo video link | 🟡 | Record per [DEMO.md](DEMO.md) script; paste link here + in README |
-| Proof of 10+ wallet interactions | 🟡 | [docs/USERS.md](docs/USERS.md) + Activity page screenshot |
-| Basic user feedback summary | 🟡 | [docs/FEEDBACK.md](docs/FEEDBACK.md) with real entries |
+| Proof of 10+ wallet interactions | ✅ | 10 wallets in [docs/USERS.md](docs/USERS.md) + Activity page |
+| Basic user feedback summary | ✅ | 10 responses in [docs/FEEDBACK.md](docs/FEEDBACK.md) |
 
 ## Remaining human tasks (cannot be done in code)
 
-1. **Onboard 10+ real users** — share the live URL + [DEMO.md](DEMO.md)
-   prerequisites; have each connect Freighter (testnet) and run create/pay.
-   Record them in [docs/USERS.md](docs/USERS.md).
-2. **Record the demo video** — follow the script in [DEMO.md](DEMO.md); show a
+1. **Record the demo video** — follow the script in [DEMO.md](DEMO.md); show a
    real Freighter signature and the stellar.expert tx page. Paste the link here.
-3. **Collect feedback** — get onboarded users to use the 💬 widget; summarise in
-   [docs/FEEDBACK.md](docs/FEEDBACK.md).
 
-_Screenshots (incl. mobile + Sentry monitoring) are done and in the repo._
+_Users (10), feedback (10 responses), and screenshots (incl. mobile + Sentry
+monitoring) are all done and in the repo._
 
 ## Demo video
 

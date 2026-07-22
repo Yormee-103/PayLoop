@@ -86,7 +86,9 @@ faucet, monitoring, or feedback forwarding, set `USDC_ISSUER_SECRET`,
 
 More in [docs/screenshots/](docs/screenshots/). The demo-video script, onboarding
 steps, and how to capture proof of wallet interactions are in [DEMO.md](DEMO.md).
-The user-feedback summary is in [docs/FEEDBACK.md](docs/FEEDBACK.md).
+The user-feedback summary (10 responses, avg 5.3/6) is in
+[docs/FEEDBACK.md](docs/FEEDBACK.md), collected via the
+[PayLoop user survey](https://forms.gle/FbtjeS6pYHW4FjwWA).
 
 ## Submission (Level 4 — Green Belt)
 

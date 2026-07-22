@@ -15,31 +15,35 @@ file is the submission's proof log. All of it is independently verifiable on
   [contract's transaction history](https://stellar.expert/explorer/testnet/contract/CAQVSBNVL7OI66IDTYCR7XL4VJKMSOYGBW5D6SWLTWTINTCQO2OGCSXS)
   shows every `create_invoice` / `fund_invoice` call and the signing account.
 
-## Onboarded users (target: 10+)
+## Onboarded users (10 onboarded ✅)
 
-Fill one row per person as you onboard them. "Example tx" can be any of their
-create/fund/trustline transactions — click their address on the Activity page or
-the contract explorer to grab a hash.
+Collected via the PayLoop user survey (Google Form) — each participant connected
+a Freighter wallet on testnet and ran the create/pay flow. Wallet addresses are
+truncated here for privacy; click any address on the
+[Activity page](https://pay-loop-neon.vercel.app/activity) to open its full
+explorer history. All 10 also submitted written feedback (see
+[FEEDBACK.md](../FEEDBACK.md)).
 
-| #  | User (handle / name) | Role       | Wallet address (G…) | Example tx hash | Left feedback? |
-| -- | -------------------- | ---------- | ------------------- | --------------- | -------------- |
-| 1  |                      |            |                     |                 |                |
-| 2  |                      |            |                     |                 |                |
-| 3  |                      |            |                     |                 |                |
-| 4  |                      |            |                     |                 |                |
-| 5  |                      |            |                     |                 |                |
-| 6  |                      |            |                     |                 |                |
-| 7  |                      |            |                     |                 |                |
-| 8  |                      |            |                     |                 |                |
-| 9  |                      |            |                     |                 |                |
-| 10 |                      |            |                     |                 |                |
+| #  | User            | Network | Wallet address (G…)   | Left feedback? |
+| -- | --------------- | ------- | --------------------- | -------------- |
+| 1  | Robbert Abimbola | Testnet | `GB46MTG7…S6DV2BST`  | ✅ |
+| 2  | Aruleba Pelumi   | Testnet | `GDT2OWEO…HVYUSQA`   | ✅ |
+| 3  | Daniel Johnson   | Testnet | `GA45OA72…X7LJQ77G`  | ✅ |
+| 4  | Busayo Akin      | Testnet | `GCEUXGIJ…VSBBO7S`   | ✅ |
+| 5  | John             | Testnet | `GDWTLXJ3…CCBFJCO`   | ✅ |
+| 6  | Kenny Mary       | Testnet | `GAQFJAW7…KJM7SJY`   | ✅ |
+| 7  | Tochi            | Testnet | `GAWLDPZ6…J7BGYQ3`   | ✅ |
+| 8  | Folarin Oreofe   | Testnet | `GA43O4X2…QHTZ25`    | ✅ |
+| 9  | Gbadebo Ahmad    | Testnet | `GCCBRPL6…H4QT5DLU`  | ✅ |
+| 10 | Bola             | Testnet | `GCPECF6E…V46ICU`    | ✅ |
 
-## Summary stats (fill in at submission time)
+## Summary stats
 
-- Total unique wallets that interacted: **__**
-- Total invoices created: **__**
-- Total invoices paid (USDC settled on-chain): **__**
-- Feedback responses collected: **__**
+- Total users onboarded: **10**
+- Network: **Testnet** (all 10)
+- Feedback responses collected: **10**
+- Unique wallets that interacted with the contract: see live count on the
+  [Activity page](https://pay-loop-neon.vercel.app/activity)
 
-> Tip: the Activity page shows the first three numbers at the top — screenshot it
-> for `docs/screenshots/activity.png`.
+> The Activity page shows the live unique-wallet and invoice counts at the top —
+> screenshot it for `docs/screenshots/activity.png`.

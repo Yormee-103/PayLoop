@@ -14,6 +14,8 @@ create_invoice  →  fund_invoice (client pays, escrow + instant release)  →  
 
 That create → fund → release loop is PayLoop. Everything else is UX around it.
 
+**🔗 Live app:** https://pay-loop-neon.vercel.app &nbsp;·&nbsp; **🎬 Demo video:** https://www.loom.com/share/0b08c1208df841ac96ecd61b2b05a7a9
+
 ## Why Stellar
 
 | Problem (today) | PayPal / wire | PayLoop on Stellar |
@@ -84,7 +86,7 @@ faucet, monitoring, or feedback forwarding, set `USDC_ISSUER_SECRET`,
 | **Monitoring (Sentry)** | |
 | ![Monitoring](docs/screenshots/analytics.png) | |
 
-More in [docs/screenshots/](docs/screenshots/). The demo-video script, onboarding
+More in [docs/screenshots/](docs/screenshots/). **Watch the 🎬 [demo video](https://www.loom.com/share/0b08c1208df841ac96ecd61b2b05a7a9)** for the full create → pay → on-chain loop. The demo-video script, onboarding
 steps, and how to capture proof of wallet interactions are in [DEMO.md](DEMO.md).
 The user-feedback summary (10 responses, avg 5.3/6) is in
 [docs/FEEDBACK.md](docs/FEEDBACK.md), collected via the

@@ -23,18 +23,16 @@ you to complete a real-world step (onboard users, record video, capture images).
 | Live demo link | ✅ | https://pay-loop-neon.vercel.app |
 | Contract deployment address | ✅ | See README deployment table |
 | Screenshots (UI, mobile, analytics) | ✅ | 8 in [docs/screenshots/](docs/screenshots/): landing, dashboard, create, pay (paid), activity, feedback, mobile, Sentry monitoring |
-| Demo video link | 🟡 | Record per [DEMO.md](DEMO.md) script; paste link here + in README |
+| Demo video link | ✅ | https://www.loom.com/share/0b08c1208df841ac96ecd61b2b05a7a9 |
 | Proof of 10+ wallet interactions | ✅ | 10 wallets in [docs/USERS.md](docs/USERS.md) + Activity page |
 | Basic user feedback summary | ✅ | 10 responses in [docs/FEEDBACK.md](docs/FEEDBACK.md) |
 
 ## Remaining human tasks (cannot be done in code)
 
-1. **Record the demo video** — follow the script in [DEMO.md](DEMO.md); show a
-   real Freighter signature and the stellar.expert tx page. Paste the link here.
-
-_Users (10), feedback (10 responses), and screenshots (incl. mobile + Sentry
-monitoring) are all done and in the repo._
+_None — all requirements are complete. Users (10), feedback (10 responses),
+screenshots (incl. mobile + Sentry monitoring), and the demo video are all done
+and in the repo._
 
 ## Demo video
 
-_Paste the recorded demo video link here._
+https://www.loom.com/share/0b08c1208df841ac96ecd61b2b05a7a9

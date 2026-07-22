@@ -12,7 +12,7 @@ Submission screenshots for PayLoop.
 | `activity.png` | On-chain activity feed + usage stats (proof of wallet interactions) |
 | `feedback.png` | In-app feedback widget |
 | `mobile.jpeg` | Mobile responsive view (real device) |
-| `analytics.png` | _TODO: Vercel Analytics dashboard (analytics/monitoring proof)_ |
+| `analytics.png` | Sentry monitoring dashboard — captured error events (monitoring proof) |
 
 Note: `pay.png` shows a paid invoice with an on-chain **View on explorer** link;
 `activity.png` shows the live invoice/paid/unique-wallet counts.

@@ -81,6 +81,8 @@ faucet, monitoring, or feedback forwarding, set `USDC_ISSUER_SECRET`,
 | ![Create invoice](docs/screenshots/create.png) | ![Payment paid](docs/screenshots/pay.png) |
 | **On-chain activity** | **Mobile** |
 | ![Activity](docs/screenshots/activity.png) | ![Mobile](docs/screenshots/mobile.jpeg) |
+| **Monitoring (Sentry)** | |
+| ![Monitoring](docs/screenshots/analytics.png) | |
 
 More in [docs/screenshots/](docs/screenshots/). The demo-video script, onboarding
 steps, and how to capture proof of wallet interactions are in [DEMO.md](DEMO.md).

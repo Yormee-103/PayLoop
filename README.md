@@ -1,5 +1,9 @@
 # PayLoop
 
+[![Contract CI](https://github.com/Yormee-103/PayLoop/actions/workflows/contract.yml/badge.svg)](https://github.com/Yormee-103/PayLoop/actions/workflows/contract.yml)
+[![Web CI](https://github.com/Yormee-103/PayLoop/actions/workflows/web.yml/badge.svg)](https://github.com/Yormee-103/PayLoop/actions/workflows/web.yml)
+[![Deploy (CD)](https://github.com/Yormee-103/PayLoop/actions/workflows/deploy.yml/badge.svg)](https://github.com/Yormee-103/PayLoop/actions/workflows/deploy.yml)
+
 **Get paid for freelance work in seconds, not weeks — with a permanent, portable income record.**
 
 PayLoop is an invoicing + escrow dApp built on [Stellar](https://stellar.org)/Soroban. It lets freelancers (built with Nigerian & African freelancers working with foreign clients in mind) create an invoice, share a payment link, and receive **USDC** the moment a client funds it — settling in ~5 seconds for a fraction of a cent, instead of the 2–5 days and 5–8% that PayPal/Payoneer cost. Every paid invoice is a timestamped on-chain record that becomes the freelancer's portable income history.

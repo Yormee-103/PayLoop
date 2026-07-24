@@ -5,3 +5,12 @@
 *.jpeg binary
 *.gif binary
 *.wasm binary
+
+# Mark generated / evidence files so code-review and analysis tools (and GitHub's
+# language stats) deprioritize them and spend their file budget on real source.
+# These are checked in intentionally (reproducible builds, submission evidence)
+# but are not hand-written source code.
+web/package-lock.json               linguist-generated=true -diff
+contracts/Cargo.lock                linguist-generated=true -diff
+contracts/invoice/test_snapshots/** linguist-generated=true -diff
+docs/screenshots/**                 linguist-generated=true

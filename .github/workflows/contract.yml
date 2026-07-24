@@ -1,0 +1,62 @@
+name: Contract CI
+
+# CI for the Soroban invoice smart contract (contracts/).
+# Runs formatting, lint, tests, and an optimized wasm build on every push/PR.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contracts/**"
+      - ".github/workflows/contract.yml"
+  pull_request:
+    paths:
+      - "contracts/**"
+      - ".github/workflows/contract.yml"
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: contracts
+
+jobs:
+  build-test:
+    name: fmt · clippy · test · build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32v1-none
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contracts/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('contracts/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Format check
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets
+
+      - name: Test
+        run: cargo test
+
+      - name: Build optimized wasm
+        run: cargo build --target wasm32v1-none --release
+
+      - name: Upload wasm artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: payloop-invoice-wasm
+          path: contracts/target/wasm32v1-none/release/payloop_invoice.wasm
+          if-no-files-found: error

@@ -1,0 +1,66 @@
+name: Deploy (CD)
+
+# Continuous deployment for the frontend to Vercel production.
+#
+# PayLoop's primary deploy path is Vercel's native Git integration (every push to
+# main auto-deploys). This workflow provides an explicit, auditable CD pipeline on
+# top of that. It deploys via the Vercel CLI when the VERCEL_* secrets are set,
+# and no-ops gracefully otherwise so the native integration keeps working.
+#
+# To enable the CLI path, add repo secrets: VERCEL_TOKEN, VERCEL_ORG_ID,
+# VERCEL_PROJECT_ID (from `vercel link` + the Vercel dashboard).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Vercel production deploy
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Check for Vercel credentials
+        id: guard
+        run: |
+          if [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_PROJECT_ID" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::VERCEL_* secrets not set — production deploy is handled by Vercel's native Git integration. Skipping CLI deploy."
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.guard.outputs.enabled == 'true'
+
+      - name: Setup Node
+        if: steps.guard.outputs.enabled == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Vercel CLI
+        if: steps.guard.outputs.enabled == 'true'
+        run: npm i -g vercel@latest
+
+      - name: Pull Vercel environment
+        if: steps.guard.outputs.enabled == 'true'
+        working-directory: web
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build project
+        if: steps.guard.outputs.enabled == 'true'
+        working-directory: web
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy to production
+        if: steps.guard.outputs.enabled == 'true'
+        working-directory: web
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"

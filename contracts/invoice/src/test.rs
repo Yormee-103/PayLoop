@@ -8,10 +8,7 @@ use soroban_sdk::{
 
 /// Deploys a token (Stellar Asset Contract) we control, mints `amount` to
 /// `to`, and returns the token address plus its admin client for minting.
-fn create_token<'a>(
-    env: &Env,
-    admin: &Address,
-) -> (Address, token::StellarAssetClient<'a>) {
+fn create_token<'a>(env: &Env, admin: &Address) -> (Address, token::StellarAssetClient<'a>) {
     let sac = env.register_stellar_asset_contract_v2(admin.clone());
     let token_admin = token::StellarAssetClient::new(env, &sac.address());
     (sac.address(), token_admin)

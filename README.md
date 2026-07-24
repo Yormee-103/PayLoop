@@ -73,6 +73,17 @@ faucet, monitoring, or feedback forwarding, set `USDC_ISSUER_SECRET`,
 `FEEDBACK_WEBHOOK_URL` in the Vercel project settings. See
 [web/.env.example](web/.env.example).
 
+### CI/CD
+
+GitHub Actions runs on every push and pull request
+([`.github/workflows/`](.github/workflows/)):
+
+| Workflow | What it does |
+| --- | --- |
+| [`contract.yml`](.github/workflows/contract.yml) | **Contract CI** — `cargo fmt --check`, `clippy`, `cargo test`, and an optimized `wasm32v1-none` release build (uploaded as an artifact) |
+| [`web.yml`](.github/workflows/web.yml) | **Web CI** — `npm ci`, `npm run lint`, `npm run build` |
+| [`deploy.yml`](.github/workflows/deploy.yml) | **CD** — Vercel production deploy on push to `main` (via the Vercel CLI when `VERCEL_*` secrets are set; Vercel's native Git integration otherwise) |
+
 ## Screenshots & demo
 
 | | |
@@ -122,6 +133,7 @@ See [contracts/DEPLOYMENT.md](contracts/DEPLOYMENT.md) for the full testnet depl
 
 ```
 PayLoop/
+├── .github/workflows/         CI (contract + web) and CD (Vercel) pipelines
 ├── contracts/
 │   ├── invoice/               Soroban invoice/escrow contract (Rust) + tests
 │   ├── DEPLOYMENT.md          Testnet deploy + token setup steps

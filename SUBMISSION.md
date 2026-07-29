@@ -11,7 +11,7 @@ you to complete a real-world step (onboard users, record video, capture images).
 | Loading states + error handling | ✅ | `web/app/loading.tsx`, `error.tsx`, `global-error.tsx`, `not-found.tsx`; per-action spinners + Alerts |
 | Min. 10 real users onboarded | ✅ | 10 users logged in [docs/USERS.md](docs/USERS.md) (collected via user survey, all testnet + Freighter) |
 | Proof of wallet interactions | ✅ | 10 real wallets in [docs/USERS.md](docs/USERS.md); live on [/activity](https://pay-loop-neon.vercel.app/activity) + contract explorer |
-| Basic user feedback collection | ✅ | Google Form survey + in-app widget; 10 responses summarised in [docs/FEEDBACK.md](docs/FEEDBACK.md) (avg 5.3/6, 8 Yes / 2 Maybe) |
+| Basic user feedback collection | ✅ | Google Form survey + in-app widget; 10 responses summarised in [docs/FEEDBACK.md](docs/FEEDBACK.md) (avg 5.3/6, 8 Yes / 2 Maybe) — [raw response sheet](https://docs.google.com/spreadsheets/d/1Fijrwspc7AIIbs2a_ydaOWPQyCnI393nA9a5uPGIFwU/edit?usp=sharing) |
 | Production deployment | ✅ | Vercel, production alias above |
 | Monitoring + analytics | ✅ | Sentry live & capturing events (see `docs/screenshots/analytics.png`) + Vercel Analytics wired |
 | Optimized UX | ✅ | One-click pay, in-app trustline + faucet, explorer links, clear empty/error states |
@@ -25,7 +25,7 @@ you to complete a real-world step (onboard users, record video, capture images).
 | Screenshots (UI, mobile, analytics) | ✅ | 8 in [docs/screenshots/](docs/screenshots/): landing, dashboard, create, pay (paid), activity, feedback, mobile, Sentry monitoring |
 | Demo video link | ✅ | https://www.loom.com/share/0b08c1208df841ac96ecd61b2b05a7a9 |
 | Proof of 10+ wallet interactions | ✅ | 10 wallets in [docs/USERS.md](docs/USERS.md) + Activity page |
-| Basic user feedback summary | ✅ | 10 responses in [docs/FEEDBACK.md](docs/FEEDBACK.md) |
+| Basic user feedback summary | ✅ | 10 responses in [docs/FEEDBACK.md](docs/FEEDBACK.md) + [raw sheet](https://docs.google.com/spreadsheets/d/1Fijrwspc7AIIbs2a_ydaOWPQyCnI393nA9a5uPGIFwU/edit?usp=sharing) |
 
 ## Remaining human tasks (cannot be done in code)
 

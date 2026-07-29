@@ -105,7 +105,8 @@ More in [docs/screenshots/](docs/screenshots/). **Watch the 🎬 [demo video](ht
 steps, and how to capture proof of wallet interactions are in [DEMO.md](DEMO.md).
 The user-feedback summary (10 responses, avg 5.3/6) is in
 [docs/FEEDBACK.md](docs/FEEDBACK.md), collected via the
-[PayLoop user survey](https://forms.gle/FbtjeS6pYHW4FjwWA).
+[PayLoop user survey](https://forms.gle/FbtjeS6pYHW4FjwWA) —
+[raw responses (Google Sheet)](https://docs.google.com/spreadsheets/d/1Fijrwspc7AIIbs2a_ydaOWPQyCnI393nA9a5uPGIFwU/edit?usp=sharing).
 
 ## Submission (Level 4 — Green Belt)
 

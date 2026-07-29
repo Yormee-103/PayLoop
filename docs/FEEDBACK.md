@@ -4,6 +4,9 @@ Feedback was collected via the **PayLoop user survey** (Google Form) and the
 in-app 💬 widget (posts to `/api/feedback`). **10 real users** tested the app on
 Stellar testnet and submitted responses. This is the summary for the submission.
 
+**Raw responses (live Google Sheet, view-only):**
+https://docs.google.com/spreadsheets/d/1Fijrwspc7AIIbs2a_ydaOWPQyCnI393nA9a5uPGIFwU/edit?usp=sharing
+
 ## Headline metrics
 
 - **Responses:** 10

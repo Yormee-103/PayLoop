@@ -32,6 +32,49 @@ export default function ActivityPage() {
     load();
   }, [load]);
 
+  function downloadCsv() {
+    // Export every on-chain invoice as CSV — reusable proof of usage activity
+    // for analytics / reporting without a backend.
+    const header = [
+      "invoice_id",
+      "description",
+      "amount_usdc",
+      "status",
+      "freelancer_address",
+      "client_address",
+      "created_at_utc",
+      "paid_at_utc",
+    ];
+    const esc = (s: string) => `"${s.replaceAll('"', '""')}"`;
+    const rows = [...invoices]
+      .sort((a, b) => Number(a.id) - Number(b.id))
+      .map((i) =>
+        [
+          i.id,
+          esc(i.description),
+          formatAmount(i.amount),
+          i.status,
+          i.freelancer,
+          i.client,
+          i.createdAt > 0n
+            ? new Date(Number(i.createdAt) * 1000).toISOString()
+            : "",
+          i.paidAt > 0n ? new Date(Number(i.paidAt) * 1000).toISOString() : "",
+        ].join(",")
+      );
+    const blob = new Blob([[header.join(","), ...rows].join("\n")], {
+      type: "text/csv",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `payloop-activity-${new Date()
+      .toISOString()
+      .slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   if (!isConfigured()) {
     return (
       <Alert kind="info">The contract isn&apos;t configured yet.</Alert>
@@ -64,13 +107,23 @@ export default function ActivityPage() {
             </a>
           </p>
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="btn-ghost text-xs"
-        >
-          {loading ? <Spinner /> : "Refresh"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={downloadCsv}
+            disabled={invoices.length === 0}
+            className="btn-ghost text-xs"
+            title="Download all invoices as CSV"
+          >
+            ⬇ Export CSV
+          </button>
+          <button
+            onClick={load}
+            disabled={loading}
+            className="btn-ghost text-xs"
+          >
+            {loading ? <Spinner /> : "Refresh"}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -87,7 +140,14 @@ export default function ActivityPage() {
         />
       </div>
 
-      {error && <Alert kind="error">{error}</Alert>}
+      {error && (
+        <Alert kind="error">
+          <span>{error}</span>{" "}
+          <button onClick={load} className="ml-2 underline">
+            Retry
+          </button>
+        </Alert>
+      )}
 
       {loading && invoices.length === 0 ? (
         <div className="space-y-3">

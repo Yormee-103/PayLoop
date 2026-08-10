@@ -23,7 +23,8 @@ body {
       disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-brand-500 text-white hover:bg-brand-400;
+    @apply btn bg-brand-500 text-white shadow-md shadow-brand-500/30
+      hover:bg-brand-400 hover:shadow-brand-400/40;
   }
   .btn-ghost {
     @apply btn border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10;
@@ -43,5 +44,107 @@ body {
   .badge {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs
       font-medium;
+  }
+}
+
+/* Light theme — the app is dark-first; toggling .light on <html> re-tints the
+   core surfaces without rewriting every component. Dark remains the default. */
+html.light body {
+  @apply bg-slate-100 text-slate-900;
+}
+html.light .card {
+  @apply border-slate-200 bg-white text-slate-900 shadow-slate-300/40;
+}
+html.light .btn-ghost {
+  @apply border-slate-300 bg-white text-slate-700 hover:bg-slate-50
+    hover:text-slate-900;
+}
+html.light .input {
+  @apply border-slate-300 bg-white text-slate-900
+    placeholder:text-slate-400;
+}
+html.light .label {
+  @apply text-slate-700;
+}
+html.light .bg-ink-900\/80,
+html.light .bg-ink-900\/95,
+html.light .bg-ink-900\/60 {
+  background-color: theme("colors.slate.100");
+  border-color: theme("colors.slate.200");
+}
+html.light .bg-white\/5,
+html.light .bg-white\/\[0\.02\],
+html.light .bg-white\/10 {
+  background-color: theme("colors.slate.200") !important;
+}
+html.light .text-slate-400 {
+  color: theme("colors.slate.500");
+}
+html.light .text-slate-300 {
+  color: theme("colors.slate.600");
+}
+html.light .text-slate-500 {
+  color: theme("colors.slate.600");
+}
+html.light .border-white\/5,
+html.light .border-white\/10 {
+  border-color: theme("colors.slate.200");
+}
+html.light .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
+  border-color: theme("colors.slate.200");
+}
+html.light .text-emerald-300 {
+  color: theme("colors.emerald.600");
+}
+html.light .text-amber-300 {
+  color: theme("colors.amber.600");
+}
+html.light .text-brand-200,
+html.light .text-brand-300 {
+  color: theme("colors.brand.700");
+}
+html.light .shadow-black\/20 {
+  box-shadow: 0 20px 25px -5px rgb(203 213 225 / 0.5),
+    0 8px 10px -6px rgb(203 213 225 / 0.5);
+}
+
+/* Print: only the .print-area is visible, rendered as a plain white invoice. */
+@media print {
+  body {
+    background: #fff !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 0;
+  }
+  .invoice-print {
+    background: #fff !important;
+    color: #0f172a !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .invoice-print,
+  .invoice-print * {
+    color: #0f172a !important;
+  }
+  .invoice-print .text-slate-400,
+  .invoice-print .text-slate-500 {
+    color: #64748b !important;
+  }
+  .invoice-print .border-white\/10,
+  .invoice-print .border-white\/5 {
+    border-color: #e2e8f0 !important;
+  }
+  .invoice-print .bg-ink-900\/60 {
+    background: #f8fafc !important;
   }
 }

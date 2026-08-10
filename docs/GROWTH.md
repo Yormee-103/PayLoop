@@ -23,14 +23,14 @@ Each row links the shipped commit so reviewers can trace the iteration.
 
 | # | User asked for | Shipped | Commit |
 | - | -------------- | ------- | ------ |
-| 1 | Invoice history / search & filtering (Robbert, Folarin) | New `/history` page with search + status/role filters + CSV-style PDF per invoice | <!-- COMMIT:history --> |
-| 2 | Invoice preview before sending (Robbert) | "👀 Preview invoice" on the create flow before the on-chain tx | <!-- COMMIT:preview --> |
-| 3 | PDF invoice export (Robbert, Kenny) | "Save as PDF" on preview, history, and paid receipts (print-optimized, no lib) | <!-- COMMIT:pdf --> |
-| 4 | Onboarding tutorial / walkthrough & help (Aruleba, Kenny, Folarin) | First-run guided tour + navbar "?" replay + friendlier empty states | <!-- COMMIT:tour --> |
-| 5 | Payment reminders (Aruleba, Busayo) | One-click "Remind" that copies a ready-to-send reminder + reminders card on dashboard | <!-- COMMIT:reminders --> |
-| 6 | Dark mode (Robbert) | Dark/light theme toggle (dark default, persisted) | <!-- COMMIT:theme --> |
-| 7 | Loading speed / button prominence (Gbadebo, Bola) | Retry on all load errors, clearer loading text, stronger primary buttons | <!-- COMMIT:polish --> |
-| 8 | Usage analytics / reporting (Bola) | Activity page **Export CSV** + live usage stats | <!-- COMMIT:analytics --> |
+| 1 | Invoice history / search & filtering (Robbert, Folarin) | New `/history` page with search + status/role filters + CSV-style PDF per invoice | https://github.com/Yormee-103/PayLoop/commit/f4ba23a |
+| 2 | Invoice preview before sending (Robbert) | "👀 Preview invoice" on the create flow before the on-chain tx | https://github.com/Yormee-103/PayLoop/commit/56a7200 |
+| 3 | PDF invoice export (Robbert, Kenny) | "Save as PDF" on preview, history, and paid receipts (print-optimized, no lib) | https://github.com/Yormee-103/PayLoop/commit/56a7200 |
+| 4 | Onboarding tutorial / walkthrough & help (Aruleba, Kenny, Folarin) | First-run guided tour + navbar "?" replay + friendlier empty states | https://github.com/Yormee-103/PayLoop/commit/d6d55a1 |
+| 5 | Payment reminders (Aruleba, Busayo) | One-click "Remind" that copies a ready-to-send reminder + reminders card on dashboard | https://github.com/Yormee-103/PayLoop/commit/e66990b |
+| 6 | Dark mode (Robbert) | Dark/light theme toggle (dark default, persisted) | https://github.com/Yormee-103/PayLoop/commit/d6d55a1 |
+| 7 | Loading speed / button prominence (Gbadebo, Bola) | Retry on all load errors, clearer loading text, stronger primary buttons | https://github.com/Yormee-103/PayLoop/commit/e66990b |
+| 8 | Usage analytics / reporting (Bola) | Activity page **Export CSV** + live usage stats | https://github.com/Yormee-103/PayLoop/commit/44caad6 |
 
 > Commit placeholders above are resolved to real short-hash links in the final
 > docs pass after the feature commits land.

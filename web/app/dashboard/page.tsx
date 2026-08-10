@@ -70,6 +70,11 @@ export default function DashboardPage() {
   const pendingTotal = invoices
     .filter((i) => i.status === "Pending")
     .reduce((acc, i) => acc + i.amount, 0n);
+  const pending = invoices.filter((i) => i.status === "Pending");
+  const nowMs = Date.now();
+  const overdue = pending.filter(
+    (i) => i.dueDate > 0n && i.dueDate * 1000n < BigInt(nowMs)
+  );
 
   return (
     <div className="space-y-6">
@@ -107,9 +112,20 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {error && <Alert kind="error">{error}</Alert>}
+      {error && (
+        <Alert kind="error">
+          <span>{error}</span>{" "}
+          <button onClick={load} className="ml-2 underline">
+            Retry
+          </button>
+        </Alert>
+      )}
 
       <TrustlineButton onDone={load} />
+
+      {pending.length > 0 && (
+        <RemindersCard pending={pending} overdueCount={overdue.length} />
+      )}
 
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Your invoices</h2>
@@ -131,11 +147,16 @@ export default function DashboardPage() {
       ) : invoices.length === 0 ? (
         <EmptyState
           title="No invoices yet"
-          subtitle="Create your first invoice and share the payment link with a client."
+          subtitle="Three quick steps to your first payment: enable USDC, create an invoice, share the link."
           action={
-            <Link href="/create" className="btn-primary text-sm">
-              Create invoice
-            </Link>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Link href="/create" className="btn-primary text-sm">
+                Create invoice
+              </Link>
+              <Link href="/history" className="btn-ghost text-sm">
+                History
+              </Link>
+            </div>
           }
         />
       ) : (
@@ -145,6 +166,66 @@ export default function DashboardPage() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// Quick-action card for unpaid invoices: one click copies a reminder message
+// per pending invoice (Level-4 feedback: "payment reminders").
+function RemindersCard({
+  pending,
+  overdueCount,
+}: {
+  pending: Invoice[];
+  overdueCount: number;
+}) {
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  async function remind(inv: Invoice) {
+    const url =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/pay/${inv.id}`
+        : `/pay/${inv.id}`;
+    const text = `Hi! You have an outstanding PayLoop invoice #${inv.id} for ${formatAmount(
+      inv.amount
+    )} ${config.tokenSymbol} (${inv.description || "no description"}). Please pay it here: ${url}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(inv.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      window.location.href = url;
+    }
+  }
+
+  return (
+    <div className="card space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="font-semibold">Payment reminders</p>
+          <p className="text-xs text-slate-400">
+            {pending.length} pending ·{" "}
+            {overdueCount > 0 ? (
+              <span className="text-red-300">{overdueCount} overdue</span>
+            ) : (
+              "none overdue"
+            )}
+          </p>
+        </div>
+        <span className="text-xl">🔔</span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {pending.map((inv) => (
+          <button
+            key={inv.id}
+            onClick={() => remind(inv)}
+            className="btn-ghost text-xs"
+            title="Copy a reminder message to send to your client"
+          >
+            {copiedId === inv.id ? "Copied ✓" : `Remind #${inv.id}`}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@/components/WalletProvider";
 import { Alert, Spinner, StatusBadge, TxLink } from "@/components/ui";
+import { InvoicePreview } from "@/components/InvoiceDocument";
 import { TrustlineButton } from "@/components/TrustlineButton";
 import { FaucetButton } from "@/components/FaucetButton";
 import {
@@ -31,6 +32,7 @@ export default function PayPage({
   const [error, setError] = useState<string | null>(null);
   const [paidHash, setPaidHash] = useState<string | null>(null);
   const [trusted, setTrusted] = useState<boolean | null>(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
   // Whether the freelancer (recipient) can receive USDC. If they haven't
   // enabled the trustline, the transfer fails on-chain (Error #13), so we gate
   // the Pay button on this and show a clear message instead.
@@ -113,6 +115,9 @@ export default function PayPage({
     return (
       <div className="mx-auto max-w-lg">
         <div className="card h-64 animate-pulse bg-white/5" />
+        <p className="mt-3 text-center text-xs text-slate-500">
+          Loading invoice from chain…
+        </p>
       </div>
     );
   }
@@ -182,10 +187,23 @@ export default function PayPage({
                 <TxLink hash={paidHash} />
               </p>
             )}
+            <button
+              onClick={() => setReceiptOpen(true)}
+              className="btn-ghost mt-3 text-sm"
+            >
+              ⬇ Download PDF receipt
+            </button>
           </Alert>
         )}
 
-        {error && <Alert kind="error">{error}</Alert>}
+        {error && (
+          <Alert kind="error">
+            <span>{error}</span>{" "}
+            <button onClick={load} className="ml-2 underline">
+              Retry
+            </button>
+          </Alert>
+        )}
 
         {!isPaid && (
           <>
@@ -269,6 +287,13 @@ export default function PayPage({
           </>
         )}
       </div>
+
+      <InvoicePreview
+        invoice={invoice}
+        open={receiptOpen}
+        onClose={() => setReceiptOpen(false)}
+        confirmLabel=""
+      />
     </div>
   );
 }

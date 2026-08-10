@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@/components/WalletProvider";
 import { Alert, Spinner, TxLink } from "@/components/ui";
+import { InvoicePreview } from "@/components/InvoiceDocument";
 import { createInvoice } from "@/lib/contract";
 import { toBaseUnits } from "@/lib/format";
 import { config, isConfigured } from "@/lib/config";
@@ -17,6 +18,7 @@ export default function CreatePage() {
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [preview, setPreview] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
 
@@ -39,10 +41,43 @@ export default function CreatePage() {
     return null;
   }
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const previewInvoice = useMemo(
+    () =>
+      client && description && Number(amount) > 0
+        ? {
+            id: "—",
+            freelancer: address ?? "",
+            client,
+            token: config.tokenId,
+            amount: toBaseUnits(amount),
+            description: description.trim(),
+            dueDate: dueDate
+              ? BigInt(Math.floor(new Date(dueDate).getTime() / 1000))
+              : 0n,
+            status: "Pending" as const,
+            createdAt: 0n,
+            paidAt: 0n,
+          }
+        : null,
+    [client, amount, description, dueDate, address]
+  );
+
+  function openPreview() {
+    const v = validate();
+    if (v) {
+      setError(v);
+      return;
+    }
+    if (!address) {
+      setError("Connect your wallet first.");
+      return;
+    }
     setError(null);
-    setResult(null);
+    setPreview(true);
+  }
+
+  async function onSubmit() {
+    setPreview(false);
     const v = validate();
     if (v) {
       setError(v);
@@ -53,6 +88,7 @@ export default function CreatePage() {
       return;
     }
     setSubmitting(true);
+    setError(null);
     try {
       const dueUnix = dueDate
         ? BigInt(Math.floor(new Date(dueDate).getTime() / 1000))
@@ -130,7 +166,13 @@ export default function CreatePage() {
           </button>
         </div>
       ) : (
-        <form onSubmit={onSubmit} className="card space-y-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit();
+          }}
+          className="card space-y-4"
+        >
           <div>
             <label className="label" htmlFor="client">
               Client wallet address
@@ -186,25 +228,42 @@ export default function CreatePage() {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="btn-primary w-full"
-          >
-            {submitting ? (
-              <>
-                <Spinner /> Creating invoice…
-              </>
-            ) : (
-              "Create invoice"
-            )}
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={openPreview}
+              className="btn-ghost flex-1"
+            >
+              👀 Preview invoice
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="btn-primary flex-1"
+            >
+              {submitting ? (
+                <>
+                  <Spinner /> Creating invoice…
+                </>
+              ) : (
+                "Create invoice"
+              )}
+            </button>
+          </div>
           <p className="text-center text-xs text-slate-500">
             You&apos;ll approve one transaction in Freighter to record the
             invoice.
           </p>
         </form>
       )}
+
+      <InvoicePreview
+        invoice={previewInvoice}
+        open={preview && Boolean(previewInvoice)}
+        onClose={() => setPreview(false)}
+        onConfirm={onSubmit}
+        confirming={submitting}
+      />
     </div>
   );
 }

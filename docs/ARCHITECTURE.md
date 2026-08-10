@@ -72,17 +72,25 @@ Next.js 15 App Router, React 19, TypeScript, Tailwind. Key modules:
 - `lib/format.ts` — base-unit ↔ human conversion (7-decimal token math in `bigint`).
 - `components/WalletProvider.tsx` — React context; re-hydrates a prior session
   from `localStorage`.
+- `components/ThemeProvider.tsx` — dark/light theme (dark default), persisted to
+  `localStorage`, toggles `.light` on `<html>`.
+- `components/OnboardingTour.tsx` — first-run walkthrough, replayable via the
+  navbar "?" (dispatches a `payloop:open-tour` event).
+- `components/InvoiceDocument.tsx` — printable invoice sheet used by the
+  pre-send preview and PDF export (`window.print()` with an isolated `.print-area`).
 
 ### Routes
 
 | Route | Type | Purpose |
 | --- | --- | --- |
 | `/` | static | landing |
-| `/create` | static | freelancer creates an invoice (1 signed tx) |
-| `/dashboard` | static | freelancer's invoices, totals, faucet |
+| `/create` | static | freelancer creates an invoice (preview → 1 signed tx) |
+| `/dashboard` | static | freelancer's invoices, totals, faucet, reminders |
 | `/pay/[id]` | dynamic | client funds an invoice (1 signed tx) |
+| `/history` | static | personal invoice history with search + status/role filters, PDF + remind |
 | `/withdraw` | static | mocked USDC→Naira off-ramp |
-| `/activity` | static | public on-chain feed + usage stats (proof of interactions) |
+| `/activity` | static | public on-chain feed + usage stats + CSV export (proof of interactions) |
+| `/pitch` | static | live pitch deck (mirrors the .pptx) |
 | `/api/faucet` | serverless | mints test USDC (holds issuer key, server-only) |
 | `/api/feedback` | serverless | forwards user feedback to an optional webhook |
 

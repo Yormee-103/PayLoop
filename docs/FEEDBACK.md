@@ -70,3 +70,34 @@ https://docs.google.com/spreadsheets/d/1Fijrwspc7AIIbs2a_ydaOWPQyCnI393nA9a5uPGI
   friction point.
 - The anchor off-ramp path is documented in [ANCHOR.md](ANCHOR.md); moving it
   from mock to live remains the highest-value integration.
+
+---
+
+# Level 5 — feedback iteration (Blue Belt)
+
+The Level-4 survey directly drove the Level-5 build. Every shipped improvement
+traces to a written request, and each maps to a commit (see
+[GROWTH.md](GROWTH.md) for the commit links):
+
+| Requested (user) | Shipped in Level 5 |
+| ---------------- | ------------------ |
+| Invoice history + search & filtering (Robbert, Folarin) | New `/history` page: search by description/id/address, filter by status and role |
+| Invoice preview before sending (Robbert) | "Preview invoice" step before the on-chain create |
+| PDF invoice export (Robbert, Kenny) | Save-as-PDF on preview, history and paid receipts |
+| Onboarding tutorial & help (Aruleba, Kenny, Folarin) | First-run walkthrough + navbar "?" + clearer empty states |
+| Payment reminders (Aruleba, Busayo) | One-click "Remind" (copies a reminder message) + dashboard reminders card |
+| Dark mode (Robbert) | Dark/light toggle, dark default |
+| Loading speed + button prominence (Gbadebo, Bola) | Retry buttons on all load errors, stronger primary buttons |
+| Reporting / usage analytics (Bola) | Activity page Export CSV + live usage stats |
+
+## Result
+
+- New **survey responses**: 50+ total once the Level-5 onboarding round
+  completes (10 from Level 4 + 40+ new). See the live
+  [Google Sheet](https://docs.google.com/spreadsheets/d/1Fijrwspc7AIIbs2a_ydaOWPQyCnI393nA9a5uPGIFwU/edit?usp=sharing)
+  and the committed [Excel export](survey-responses.xlsx).
+- **Proof of usage:** on-chain activity feed
+  [/activity](https://pay-loop-neon.vercel.app/activity) with unique-wallet
+  stats, plus Vercel Analytics.
+- **Iteration loop:** feedback → ship → re-survey, documented in
+  [GROWTH.md](GROWTH.md).

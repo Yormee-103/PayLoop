@@ -1,12 +1,14 @@
 # Demo & onboarding guide
 
-This is the runbook for demoing PayLoop end-to-end and for onboarding the 10+
-users the Level 4 submission requires. It also lists exactly what proof to
-capture.
+This is the runbook for demoing PayLoop end-to-end and for onboarding the 50+
+users the Level 5 (Blue Belt) submission requires. It also lists exactly what
+proof to capture.
 
 ## Live app
 
 - **URL:** https://pay-loop-neon.vercel.app
+- **Pitch deck:** https://pay-loop-neon.vercel.app/pitch (web) ·
+  [`docs/pitch/PayLoop-Pitch-Deck.pptx`](docs/pitch/PayLoop-Pitch-Deck.pptx)
 - **Network:** Stellar **Testnet** (set Freighter to Testnet)
 - **Contract:** [`CAQVSBNVL7OI66IDTYCR7XL4VJKMSOYGBW5D6SWLTWTINTCQO2OGCSXS`](https://stellar.expert/explorer/testnet/contract/CAQVSBNVL7OI66IDTYCR7XL4VJKMSOYGBW5D6SWLTWTINTCQO2OGCSXS)
 
@@ -22,32 +24,44 @@ capture.
    payments fail with a "trustline missing" error on-chain. The app now detects
    this and tells you when a wallet still needs it.
 
-## The 90-second demo script
+## Level 5 demo video script (record with screen + narration)
 
-1. Open the app, click **Connect wallet** → approve in Freighter.
-2. Go to **Dashboard** → **Enable USDC** (one-time) → then **Get test USDC**
-   (mints 500 test USDC to the wallet).
-3. **New invoice**: paste a second wallet as the client, enter an amount + a
-   description, submit → approve the transaction. Copy the `/pay/<id>` link.
-4. Switch Freighter to the **client** account (also Enable USDC if it's new),
-   open the pay link, click **Pay** → approve. Watch it flip to **Paid** with a
-   `stellar.expert` link.
-5. Open **Activity** to show the invoice in the public on-chain feed and the
-   usage stats updating.
-6. Open **Withdraw** to show the (mocked) USDC→Naira off-ramp UX.
-7. Click the **💬 Feedback** button and leave a rating.
+Aim for **3–4 minutes**. Walk the full user journey and the new Level-5
+features — the loop you show is the loop reviewers can verify on-chain.
+
+1. **Landing → tour.** Open the app, show the landing page, and click the **?**
+   button to replay the onboarding walkthrough (or let the auto-tour appear).
+   This proves the onboarding improvement.
+2. **Connect + fund.** Connect Freighter, go to **Dashboard**, **Enable USDC**,
+   then **Get test USDC**.
+3. **Create with preview.** **New invoice** → fill client address, amount,
+   description → click **👀 Preview invoice** → show the clean invoice sheet →
+   **Create invoice** → approve in Freighter. This proves the pre-send preview.
+4. **Client pays.** Switch Freighter to the client account (enable USDC if new),
+   open the `/pay/<id>` link, **Pay** → approve. Watch it flip to **Paid** with a
+   `stellar.expert` link. **Download PDF receipt** to show PDF export.
+5. **History.** Open **History**, search by description, filter by **Paid**, and
+   show the **Remind** button that copies a payment reminder. This proves the
+   history/search/filter and reminders features.
+6. **Activity.** Open **Activity** → **Export CSV** → show the on-chain feed and
+   usage stats (invoice count, paid count, unique wallets). This is the usage
+   proof. Also screenshot the **theme toggle** (☀️/🌙) in the navbar.
+7. **Withdraw.** Show the mocked USDC→Naira off-ramp UX.
+8. **Feedback.** Leave feedback via the 💬 widget to close the loop.
 
 Record this as the demo video (screen + narration). Show a real Freighter
 signature at least once and the `stellar.expert` transaction page.
 
-## Onboarding 10+ real users
+## Onboarding 50+ real users
 
-Target: freelancers in writing/design communities. For each user:
+Target: freelancers in writing/design/dev communities. For each user:
 
 1. Send them this guide + the live URL.
 2. Walk them through create → fund → paid (they can pair up as
    freelancer/client, or use two of their own testnet accounts).
-3. Ask them to leave feedback via the in-app widget.
+3. Ask them to fill the **PayLoop user survey**
+   ([https://forms.gle/FbtjeS6pYHW4FjwWA](https://forms.gle/FbtjeS6pYHW4FjwWA))
+   — name, email, wallet address, network, product rating, and written feedback.
 
 ### Capturing proof of wallet interactions
 
@@ -71,16 +85,21 @@ Every interaction is already on-chain and publicly verifiable. Collect proof by:
 - `landing.png` — home page
 - `dashboard.png` — dashboard with invoices + balance
 - `create.png` — new-invoice form
+- `preview.png` — the pre-send invoice preview modal
+- `history.png` — history page with search/filter
 - `pay.png` — payment page (ideally the Paid state with tx link)
 - `activity.png` — on-chain activity feed + stats (interaction proof)
 - `mobile.png` — any page in a narrow viewport (mobile responsiveness)
-- `analytics.png` — Vercel Analytics dashboard
+- `analytics.png` — Vercel Analytics dashboard (50+ user usage)
 - `monitoring.png` — Sentry issues/health (if enabled)
 - `feedback.png` — the feedback widget open
+- `theme-light.png` — light mode (optional)
 
 See [docs/screenshots/README.md](docs/screenshots/README.md) for the full list.
 
 ## Feedback summary
 
-Collate the feedback widget submissions (and any DMs) into
-[docs/FEEDBACK.md](docs/FEEDBACK.md).
+Collate the survey responses and in-app widget submissions into
+[docs/FEEDBACK.md](docs/FEEDBACK.md), then regenerate
+[`docs/survey-responses.xlsx`](docs/survey-responses.xlsx) with
+`python3 scripts/build-excel.py` after exporting the Google Form CSV.

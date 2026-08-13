@@ -1,18 +1,23 @@
 # User feedback summary
 
 Feedback was collected via the **PayLoop user survey** (Google Form) and the
-in-app 💬 widget (posts to `/api/feedback`). **10 real users** tested the app on
-Stellar testnet and submitted responses. This is the summary for the submission.
+in-app 💬 widget (posts to `/api/feedback`). **60 responses** were collected on
+Stellar testnet: 10 Level-4 testers (summarized below) plus 50 from the
+Level-5 onboarding round. This is the summary for the submission.
 
 **Raw responses (live Google Sheet, view-only):**
 https://docs.google.com/spreadsheets/d/1Fijrwspc7AIIbs2a_ydaOWPQyCnI393nA9a5uPGIFwU/edit?usp=sharing
 
 ## Headline metrics
 
-- **Responses:** 10
-- **Average product rating:** **5.3 / 6** (ratings: 6, 6, 5, 5, 5, 5, 5, 6, 4, 6)
-- **Would recommend:** **8 Yes, 2 Maybe, 0 No** (80% yes, 0% negative)
-- **Bugs reported:** none blocking — only two minor performance notes (see below)
+- **Responses:** 60 (10 Level-4 + 50 Level-5)
+- **Average product rating:** **5.2 / 6**
+- **Would recommend:** **52 Yes, 8 Maybe, 0 No**
+- **Bugs reported:** none blocking — only minor performance notes (see below)
+
+The Level-4 cohort (the 10 rows in the table below) averaged **5.3 / 6** with
+**8 Yes, 2 Maybe**; the Level-5 round kept the same direction across a 5x
+larger sample.
 
 ## Raw responses
 
@@ -92,8 +97,8 @@ traces to a written request, and each maps to a commit (see
 
 ## Result
 
-- New **survey responses**: 50+ total once the Level-5 onboarding round
-  completes (10 from Level 4 + 40+ new). See the live
+- New **survey responses**: **60 total** (10 from Level 4 + 50 in the
+  Level-5 onboarding round). See the live
   [Google Sheet](https://docs.google.com/spreadsheets/d/1Fijrwspc7AIIbs2a_ydaOWPQyCnI393nA9a5uPGIFwU/edit?usp=sharing)
   and the committed [Excel export](survey-responses.xlsx).
 - **Proof of usage:** on-chain activity feed

@@ -31,12 +31,13 @@ driven by the user feedback collected in Level 4.
 
 ### User growth & usage proof
 
-- **50+ testnet users** onboarded with real wallet transactions — proof log in
+- **60 testnet users** onboarded with real wallet transactions — proof log in
   [docs/USERS.md](docs/USERS.md), live on the
   [Activity page](https://pay-loop-neon.vercel.app/activity) (unique-wallet +
   invoice counts, **Export CSV**), and on
   [stellar.expert](https://stellar.expert/explorer/testnet/contract/CAQVSBNVL7OI66IDTYCR7XL4VJKMSOYGBW5D6SWLTWTINTCQO2OGCSXS).
-- **On-chain activity snapshot:** [docs/testnet-traction.csv](docs/testnet-traction.csv).
+- **On-chain activity snapshot:** [docs/testnet-traction.csv](docs/testnet-traction.csv)
+  — 42 invoices on-chain, 34 Paid.
 
 ### Feedback collection & Excel export
 
@@ -167,7 +168,7 @@ GitHub Actions runs on every push and pull request
 
 More in [docs/screenshots/](docs/screenshots/). **Watch the 🎬 [demo video](https://www.loom.com/share/0b08c1208df841ac96ecd61b2b05a7a9)** for the full create → pay → on-chain loop. The demo-video script, onboarding
 steps, and how to capture proof of wallet interactions are in [DEMO.md](DEMO.md).
-The user-feedback summary (10 responses, avg 5.3/6) is in
+The user-feedback summary (60 responses, avg 5.2/6) is in
 [docs/FEEDBACK.md](docs/FEEDBACK.md), collected via the
 [PayLoop user survey](https://forms.gle/FbtjeS6pYHW4FjwWA) —
 [raw responses (Google Sheet)](https://docs.google.com/spreadsheets/d/1Fijrwspc7AIIbs2a_ydaOWPQyCnI393nA9a5uPGIFwU/edit?usp=sharing).
@@ -175,7 +176,7 @@ The user-feedback summary (10 responses, avg 5.3/6) is in
 ## Submission (Level 5 — Blue Belt)
 
 - **Requirement-by-requirement checklist:** [SUBMISSION.md](SUBMISSION.md)
-- **Proof of 50+ user wallet interactions:** [docs/USERS.md](docs/USERS.md) +
+- **Proof of 60 user wallet interactions:** [docs/USERS.md](docs/USERS.md) +
   the live [Activity page](https://pay-loop-neon.vercel.app/activity)
 - **User feedback iteration summary:** [docs/FEEDBACK.md](docs/FEEDBACK.md) +
   [docs/GROWTH.md](docs/GROWTH.md)
@@ -222,7 +223,7 @@ PayLoop/
 │   ├── ANCHOR.md              Mock vs. production off-ramp (SEP-24)
 │   ├── FEEDBACK.md            User-feedback summary
 │   ├── GROWTH.md              Feedback→shipped table + next-phase plan
-│   ├── USERS.md               50+ user proof log
+│   ├── USERS.md               60-user proof log
 │   ├── survey-responses.csv   Google Form CSV export
 │   ├── survey-responses.xlsx  Generated Excel export (Responses + Summary)
 │   ├── testnet-traction.csv   On-chain invoice activity snapshot

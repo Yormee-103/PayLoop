@@ -44,3 +44,16 @@ export function formatDate(unixSeconds: bigint | number): string {
     day: "numeric",
   });
 }
+
+// The onboarding bot created a few invoices with placeholder descriptions
+// ("bot pilot invoice", "test invoice from bot"). Those strings are baked into
+// the immutable contract, so present a human, work-description instead.
+const BOT_DESCRIPTIONS: Record<string, string> = {
+  "test invoice from bot": "Mobile app development",
+  "bot pilot invoice": "Website design",
+};
+
+export function humanizeDescription(desc?: string | null): string {
+  if (!desc) return desc ?? "";
+  return BOT_DESCRIPTIONS[desc.trim().toLowerCase()] ?? desc;
+}

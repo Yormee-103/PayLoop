@@ -6,7 +6,7 @@ import { useWallet } from "@/components/WalletProvider";
 import { Alert, EmptyState, Spinner, StatusBadge } from "@/components/ui";
 import { InvoicePreview } from "@/components/InvoiceDocument";
 import { getAllInvoices, type Invoice } from "@/lib/contract";
-import { formatAmount, formatDate, shortAddress } from "@/lib/format";
+import { formatAmount, formatDate, humanizeDescription, shortAddress } from "@/lib/format";
 import { config, isConfigured } from "@/lib/config";
 
 type StatusFilter = "all" | "Pending" | "Paid";
@@ -65,7 +65,8 @@ export default function HistoryPage() {
           i.freelancer.toLowerCase().includes(q) ||
           i.client.toLowerCase().includes(q) ||
           counterparty.toLowerCase().includes(q) ||
-          formatAmount(i.amount).includes(q)
+          formatAmount(i.amount).includes(q) ||
+          humanizeDescription(i.description).toLowerCase().includes(q)
         );
       })
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
@@ -206,7 +207,7 @@ export default function HistoryPage() {
                     <StatusBadge status={inv.status} />
                   </div>
                   <p className="truncate text-sm font-medium">
-                    {inv.description || "—"}
+                    {humanizeDescription(inv.description) || "—"}
                   </p>
                   <p className="text-xs text-slate-400">
                     {isFreelancer ? "Client" : "Freelancer"}:{" "}
@@ -268,7 +269,7 @@ function CopyReminderButton({ invoice }: { invoice: Invoice }) {
         : `/pay/${invoice.id}`;
     const text = `Hi! You have an outstanding PayLoop invoice #${invoice.id} for ${formatAmount(
       invoice.amount
-    )} ${config.tokenSymbol} (${invoice.description || "no description"}). Please pay it here: ${url}`;
+    )} ${config.tokenSymbol} (${humanizeDescription(invoice.description) || "no description"}). Please pay it here: ${url}`;
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Invoice } from "@/lib/contract";
-import { formatAmount, formatDate, shortAddress } from "@/lib/format";
+import { formatAmount, formatDate, humanizeDescription, shortAddress } from "@/lib/format";
 import { config } from "@/lib/config";
 import { StatusBadge } from "./ui";
 import { InvoicePreview } from "./InvoiceDocument";
@@ -39,7 +39,7 @@ export function InvoiceCard({
   async function copyReminder() {
     const text = `Hi! You have an outstanding PayLoop invoice #${invoice.id} for ${formatAmount(
       invoice.amount
-    )} ${config.tokenSymbol} (${invoice.description || "no description"}). Please pay it here: ${link()}`;
+    )} ${config.tokenSymbol} (${humanizeDescription(invoice.description) || "no description"}). Please pay it here: ${link()}`;
     try {
       await navigator.clipboard.writeText(text);
       setReminded(true);
@@ -74,7 +74,9 @@ export function InvoiceCard({
         <StatusBadge status={invoice.status} />
       </div>
 
-      <p className="text-sm text-slate-300">{invoice.description || "—"}</p>
+      <p className="text-sm text-slate-300">
+        {humanizeDescription(invoice.description) || "—"}
+      </p>
 
       <dl className="grid grid-cols-2 gap-2 text-xs text-slate-400">
         <div>

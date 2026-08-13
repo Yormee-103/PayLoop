@@ -14,7 +14,7 @@ import {
   hasUsdcTrustline,
   type Invoice,
 } from "@/lib/contract";
-import { formatAmount, formatDate, shortAddress } from "@/lib/format";
+import { formatAmount, formatDate, humanizeDescription, shortAddress } from "@/lib/format";
 import { config, isConfigured } from "@/lib/config";
 
 export default function PayPage({
@@ -164,7 +164,7 @@ export default function PayPage({
         </div>
 
         <div className="space-y-2 rounded-lg bg-ink-900/60 p-4 text-sm">
-          <Row label="Description" value={invoice.description || "—"} />
+          <Row label="Description" value={humanizeDescription(invoice.description) || "—"} />
           <Row label="From (freelancer)" value={shortAddress(invoice.freelancer)} mono />
           <Row label="To (client)" value={shortAddress(invoice.client)} mono />
           {invoice.dueDate > 0n && (

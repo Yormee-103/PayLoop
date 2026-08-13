@@ -6,7 +6,7 @@ import { useWallet } from "@/components/WalletProvider";
 import { InvoiceCard } from "@/components/InvoiceCard";
 import { Alert, EmptyState, Spinner } from "@/components/ui";
 import { getInvoiceHistory, getTokenBalance, type Invoice } from "@/lib/contract";
-import { formatAmount } from "@/lib/format";
+import { formatAmount, humanizeDescription } from "@/lib/format";
 import { config, isConfigured } from "@/lib/config";
 import { FaucetButton } from "@/components/FaucetButton";
 import { TrustlineButton } from "@/components/TrustlineButton";
@@ -188,7 +188,7 @@ function RemindersCard({
         : `/pay/${inv.id}`;
     const text = `Hi! You have an outstanding PayLoop invoice #${inv.id} for ${formatAmount(
       inv.amount
-    )} ${config.tokenSymbol} (${inv.description || "no description"}). Please pay it here: ${url}`;
+    )} ${config.tokenSymbol} (${humanizeDescription(inv.description) || "no description"}). Please pay it here: ${url}`;
     try {
       await navigator.clipboard.writeText(text);
       setCopiedId(inv.id);

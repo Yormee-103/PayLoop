@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Alert, Spinner, StatusBadge, EmptyState } from "@/components/ui";
 import { getAllInvoices, type Invoice } from "@/lib/contract";
-import { formatAmount, formatDate, shortAddress } from "@/lib/format";
+import { formatAmount, formatDate, humanizeDescription, shortAddress } from "@/lib/format";
 import { config, explorer, isConfigured } from "@/lib/config";
 
 // Public activity feed: reads every invoice straight off the contract and
@@ -51,7 +51,7 @@ export default function ActivityPage() {
       .map((i) =>
         [
           i.id,
-          esc(i.description),
+          esc(humanizeDescription(i.description)),
           formatAmount(i.amount),
           i.status,
           i.freelancer,
@@ -190,7 +190,7 @@ export default function ActivityPage() {
                     {inv.id}
                   </td>
                   <td className="max-w-[16rem] truncate px-4 py-3">
-                    {inv.description || "—"}
+                    {humanizeDescription(inv.description) || "—"}
                   </td>
                   <td className="px-4 py-3">
                     <WalletLink addr={inv.freelancer} />
@@ -223,7 +223,7 @@ export default function ActivityPage() {
                 </div>
                 <div className="flex items-baseline justify-between">
                   <span className="truncate text-sm">
-                    {inv.description || "—"}
+                    {humanizeDescription(inv.description) || "—"}
                   </span>
                   <span className="ml-2 shrink-0 font-semibold">
                     {formatAmount(inv.amount)} {config.tokenSymbol}

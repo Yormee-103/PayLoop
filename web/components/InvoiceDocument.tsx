@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import type { Invoice } from "@/lib/contract";
-import { formatAmount, formatDate, shortAddress } from "@/lib/format";
+import { formatAmount, formatDate, humanizeDescription, shortAddress } from "@/lib/format";
 import { config } from "@/lib/config";
 import { StatusBadge } from "./ui";
 
@@ -77,7 +77,9 @@ export function InvoiceDocument({ invoice }: { invoice: Invoice }) {
         <p className="text-xs uppercase tracking-wide text-slate-500">
           For services rendered
         </p>
-        <p className="mt-1 text-slate-200">{invoice.description || "—"}</p>
+        <p className="mt-1 text-slate-200">
+          {humanizeDescription(invoice.description) || "—"}
+        </p>
       </div>
 
       <div className="border-t border-white/10 pt-4 text-xs text-slate-500">

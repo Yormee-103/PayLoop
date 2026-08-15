@@ -8,6 +8,13 @@ import { InvoicePreview } from "@/components/InvoiceDocument";
 import { createInvoice } from "@/lib/contract";
 import { toBaseUnits } from "@/lib/format";
 import { config, isConfigured } from "@/lib/config";
+import {
+  BUILTIN_TEMPLATES,
+  deleteCustomTemplate,
+  loadCustomTemplates,
+  saveCustomTemplate,
+  type InvoiceTemplate,
+} from "@/lib/templates";
 
 type Result = { id: string; hash: string };
 
@@ -21,6 +28,10 @@ export default function CreatePage() {
   const [preview, setPreview] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
+  const [customTemplates, setCustomTemplates] = useState<InvoiceTemplate[]>(() =>
+    loadCustomTemplates()
+  );
+  const [templateName, setTemplateName] = useState("");
 
   const configured = isConfigured();
 
@@ -39,6 +50,27 @@ export default function CreatePage() {
       return "Add a short description of the work.";
     }
     return null;
+  }
+
+  function applyTemplate(id: string) {
+    const template = [...BUILTIN_TEMPLATES, ...customTemplates].find(
+      (t) => t.id === id
+    );
+    if (!template) return;
+    setDescription(template.description);
+    setAmount(template.amount);
+    setError(null);
+  }
+
+  function saveTemplate() {
+    if (!description.trim()) {
+      setError("Add a description before saving it as a template.");
+      return;
+    }
+    const name = templateName.trim() || description.trim().slice(0, 24);
+    setCustomTemplates(saveCustomTemplate(name, description, amount));
+    setTemplateName("");
+    setError(null);
   }
 
   const previewInvoice = useMemo(
@@ -173,6 +205,78 @@ export default function CreatePage() {
           }}
           className="card space-y-4"
         >
+          <div>
+            <label className="label" htmlFor="template">
+              Start from a template
+            </label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <select
+                id="template"
+                className="input flex-1"
+                value=""
+                onChange={(e) => e.target.value && applyTemplate(e.target.value)}
+              >
+                <option value="">Choose a template…</option>
+                <optgroup label="Built-in">
+                  {BUILTIN_TEMPLATES.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </optgroup>
+                {customTemplates.length > 0 && (
+                  <optgroup label="My templates">
+                    {customTemplates.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
+              <div className="flex gap-2">
+                <input
+                  className="input flex-1"
+                  placeholder="Save current as template"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  maxLength={40}
+                  aria-label="Template name"
+                />
+                <button
+                  type="button"
+                  onClick={saveTemplate}
+                  className="btn-ghost shrink-0"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+            {customTemplates.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {customTemplates.map((t) => (
+                  <span key={t.id} className="badge bg-brand-500/15 text-brand-200">
+                    {t.name}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCustomTemplates(deleteCustomTemplate(t.id))
+                      }
+                      className="ml-1 text-brand-300/70 hover:text-brand-100"
+                      aria-label={`Delete template ${t.name}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <p className="mt-1.5 text-xs text-slate-500">
+              Templates prefill the description and amount. Your saved
+              templates stay in this browser.
+            </p>
+          </div>
+
           <div>
             <label className="label" htmlFor="client">
               Client wallet address

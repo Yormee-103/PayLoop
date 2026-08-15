@@ -31,6 +31,7 @@ Each row links the shipped commit so reviewers can trace the iteration.
 | 6 | Dark mode (Robbert) | Dark/light theme toggle (dark default, persisted) | https://github.com/Yormee-103/PayLoop/commit/d6d55a1 |
 | 7 | Loading speed / button prominence (Gbadebo, Bola) | Retry on all load errors, clearer loading text, stronger primary buttons | https://github.com/Yormee-103/PayLoop/commit/e66990b |
 | 8 | Usage analytics / reporting (Bola) | Activity page **Export CSV** + live usage stats | https://github.com/Yormee-103/PayLoop/commit/44caad6 |
+| 9 | Invoice templates & customization (7 survey responses) | Template picker on the create form (7 built-in service templates), "Save current as template" persisted in the browser, and delete for custom templates | https://github.com/Yormee-103/PayLoop/commit/9cd8b83 |
 
 > Commit placeholders above are resolved to real short-hash links in the final
 > docs pass after the feature commits land.
@@ -54,7 +55,7 @@ Each row links the shipped commit so reviewers can trace the iteration.
 2. **Multi-currency** (Tochi) — invoice in USDC/USDT/XLM with same-loop
    settlement via Stellar.
 3. **Team & agency accounts** (Bola) — shared dashboards and batch payouts.
-4. **Reporting tools** (Bola) — chart exports from the activity feed.
+4. **Reporting tools** (Bola) — chart exports from the activity feed; invoice templates for faster invoicing shipped this cycle.
 5. **Live anchor off-ramp** — replace the mocked USDC→Naira path with a licensed
    SEP-24 anchor integration ([ANCHOR.md](ANCHOR.md)).
 6. **Milestone/held escrow** — deposit + release for larger projects, via the

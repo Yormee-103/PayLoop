@@ -32,6 +32,7 @@ Each row links the shipped commit so reviewers can trace the iteration.
 | 7 | Loading speed / button prominence (Gbadebo, Bola) | Retry on all load errors, clearer loading text, stronger primary buttons | https://github.com/Yormee-103/PayLoop/commit/e66990b |
 | 8 | Usage analytics / reporting (Bola) | Activity page **Export CSV** + live usage stats | https://github.com/Yormee-103/PayLoop/commit/44caad6 |
 | 9 | Invoice templates & customization (7 survey responses) | Template picker on the create form (7 built-in service templates), "Save current as template" persisted in the browser, and delete for custom templates | https://github.com/Yormee-103/PayLoop/commit/9cd8b83 |
+| 10 | Detailed help section (Aruleba, Kenny, Folarin) | New `/help` FAQ page — wallet setup, Enable USDC, test funds, creating/paying invoices, history/activity, withdrawing — linked from the navbar | https://github.com/Yormee-103/PayLoop/commit/d6ae41f |
 
 > Commit placeholders above are resolved to real short-hash links in the final
 > docs pass after the feature commits land.

@@ -13,6 +13,7 @@ const links = [
   { href: "/history", label: "History" },
   { href: "/withdraw", label: "Withdraw" },
   { href: "/activity", label: "Activity" },
+  { href: "/help", label: "Help" },
 ];
 
 export function Navbar() {

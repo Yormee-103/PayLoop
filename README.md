@@ -165,14 +165,12 @@ GitHub Actions runs on every push and pull request
 | ![Create invoice with templates](docs/screenshots/create.png) | ![Payment paid](docs/screenshots/pay.png) |
 | **On-chain activity** | **Mobile** |
 | ![Activity](docs/screenshots/activity.png) | ![Mobile](docs/screenshots/mobile.jpeg) |
+| **Template picker** | **Help / FAQ** |
+| ![Template picker](docs/screenshots/template-picker.png) | ![Help / FAQ](docs/screenshots/help.png) |
 | **Monitoring (Sentry)** | |
 | ![Monitoring](docs/screenshots/analytics.png) | |
 
-More in [docs/screenshots/](docs/screenshots/). Also shipped this feedback
-cycle (screenshots not yet in the gallery above): the in-app
-[Help / FAQ](https://pay-loop-neon.vercel.app/help) page and the
-[Activity page](https://pay-loop-neon.vercel.app/activity)'s paid-vs-pending
-split and settled-volume-by-day/week charts — see
+More in [docs/screenshots/](docs/screenshots/) — see
 [docs/GROWTH.md](docs/GROWTH.md) for the full feedback → shipped trace.
 
 **Watch the 🎬 [demo video](https://www.loom.com/share/0b08c1208df841ac96ecd61b2b05a7a9)** for the full create → pay → on-chain loop. The demo-video script, onboarding

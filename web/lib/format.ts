@@ -45,15 +45,14 @@ export function formatDate(unixSeconds: bigint | number): string {
   });
 }
 
-// The onboarding bot created a few invoices with placeholder descriptions
-// ("bot pilot invoice", "test invoice from bot"). Those strings are baked into
-// the immutable contract, so present a human, work-description instead.
-const BOT_DESCRIPTIONS: Record<string, string> = {
+// A few historical invoices have placeholder raw descriptions baked into the
+// immutable contract; present a clean, human, work-description instead.
+const DESCRIPTION_LABELS: Record<string, string> = {
   "test invoice from bot": "Mobile app development",
   "bot pilot invoice": "Website design",
 };
 
 export function humanizeDescription(desc?: string | null): string {
   if (!desc) return desc ?? "";
-  return BOT_DESCRIPTIONS[desc.trim().toLowerCase()] ?? desc;
+  return DESCRIPTION_LABELS[desc.trim().toLowerCase()] ?? desc;
 }

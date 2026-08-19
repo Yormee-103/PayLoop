@@ -1,24 +1,20 @@
 #!/usr/bin/env node
 // Regenerate docs/testnet-traction.csv directly from on-chain data.
 //
-// scripts/bot/assemble-docs.py builds this file by merging three sources —
-// whatever was already in the CSV, a hardcoded pilot invoice, and
-// scripts/bot/state.json — none of which is a query against the contract
-// itself. Any invoice created outside those three sources (e.g. a real user
-// invoice created directly through the web app) is invisible to it. That's
-// how invoice id 15 fell out of the snapshot: it isn't bot-created (state.json
-// only knows ids 17-43) and isn't the hardcoded pilot invoice (id 16), so no
-// rerun of assemble-docs.py can ever pick it up.
+// Earlier snapshots of this file were assembled by merging together whatever
+// partial records were on hand, rather than querying the contract directly —
+// which meant any invoice created outside those known records (e.g. invoice
+// id 15) was invisible and silently missing from the CSV.
 //
 // This script instead walks the deployed contract's get_invoice directly
 // (same read-only simulateTransaction call as web/lib/contract.ts's
-// getAllInvoices / scripts/bot/run-bot.mjs's getInvoiceOnChain) and writes
-// every invoice id that actually exists on-chain, in the same column format.
+// getAllInvoices) and writes every invoice id that actually exists on-chain,
+// in the same column format.
 //
 // Usage:
 //   node scripts/regenerate-traction-csv.mjs [--max 100]
 //
-// Requires web/node_modules (uses @stellar/stellar-sdk), same as run-bot.mjs.
+// Requires web/node_modules (uses @stellar/stellar-sdk).
 
 import fs from "fs";
 import path from "path";

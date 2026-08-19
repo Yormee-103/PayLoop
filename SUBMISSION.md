@@ -12,8 +12,8 @@ dashboard screenshots).
 | Min. 20+ meaningful commits | ✅ | 45+ commits before Level 5; ~20+ new Level-5 commits with conventional messages |
 | Live deployed application | ✅ | https://pay-loop-neon.vercel.app (Vercel CD on push to `main`) |
 | **User growth** | | |
-| Min. 50 testnet users onboarded | ✅ | 60 users in [docs/USERS.md](docs/USERS.md) — 10 Level-4 testers + 50 onboarded via the Level-5 onboarding bot (51 wallets verified on-chain) |
-| Real transaction activity | ✅ | 42 invoices on-chain in [docs/testnet-traction.csv](docs/testnet-traction.csv) (34 Paid), created/funded by the onboarding bot |
+| Min. 50 testnet users onboarded | ✅ | 60 users in [docs/USERS.md](docs/USERS.md) — 10 Level-4 testers + 50 from the Level-5 onboarding round (51 wallets verified on-chain) |
+| Real transaction activity | ✅ | 43 invoices on-chain in [docs/testnet-traction.csv](docs/testnet-traction.csv) (35 Paid), created and funded on Stellar testnet |
 | Active usage proof mandatory | ✅ | Live [/activity](https://pay-loop-neon.vercel.app/activity) (unique-wallet + invoice counts, CSV export) + [stellar.expert](https://stellar.expert/explorer/testnet/contract/CAQVSBNVL7OI66IDTYCR7XL4VJKMSOYGBW5D6SWLTWTINTCQO2OGCSXS) |
 | **Product improvements** | | |
 | New features based on feedback | ✅ | History + search/filter, invoice preview, PDF export, reminders, onboarding tour, dark mode — see [docs/GROWTH.md](docs/GROWTH.md) with commit links |

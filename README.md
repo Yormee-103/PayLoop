@@ -36,16 +36,18 @@ driven by the user feedback collected in Level 4.
   [Activity page](https://pay-loop-neon.vercel.app/activity) (unique-wallet +
   invoice counts, **Export CSV**), and on
   [stellar.expert](https://stellar.expert/explorer/testnet/contract/CAQVSBNVL7OI66IDTYCR7XL4VJKMSOYGBW5D6SWLTWTINTCQO2OGCSXS).
-- **On-chain activity snapshot:** [docs/testnet-traction.csv](docs/testnet-traction.csv)
-  — 42 invoices on-chain, 34 Paid.
+- **On-chain activity snapshot (point-in-time, 2026-08-12):**
+  [docs/testnet-traction.csv](docs/testnet-traction.csv) — 42 invoices
+  on-chain, 34 Paid. This is a committed snapshot, not a live figure; for the
+  current on-chain count (43 invoices, 35 Paid as of this writing), see the
+  live [Activity page](https://pay-loop-neon.vercel.app/activity).
 
 ### Feedback collection & Excel export
 
-- **Google Form:** [PayLoop user survey](https://forms.gle/FbtjeS6pYHW4FjwWA) —
-  collects name, email, wallet address, network, product rating and written
-  feedback.
+- **Feedback collection:** a user survey collecting name, email, wallet
+  address, network, product rating and written feedback.
 - **Raw responses (Google Sheet):**
-  [view-only link](https://docs.google.com/spreadsheets/d/1Fijrwspc7AIIbs2a_ydaOWPQyCnI393nA9a5uPGIFwU/edit?usp=sharing).
+  [view-only link](https://docs.google.com/spreadsheets/d/10_oCs3CjUw0oyTaaj1oU0VTFeQ2ZKAFkH-K1sr7s5mQ/edit?gid=195454051#gid=195454051).
 - **Excel export (committed):** [`docs/survey-responses.xlsx`](docs/survey-responses.xlsx)
   — generated from the form CSV by `python3 scripts/build-excel.py`, with a
   **Responses** sheet (every user) and a **Summary** sheet (metrics).
@@ -159,19 +161,25 @@ GitHub Actions runs on every push and pull request
 | --- | --- |
 | **Landing** | **Dashboard** |
 | ![Landing](docs/screenshots/landing.png) | ![Dashboard](docs/screenshots/dashboard.png) |
-| **Create invoice** | **Payment — paid** |
-| ![Create invoice](docs/screenshots/create.png) | ![Payment paid](docs/screenshots/pay.png) |
+| **Create invoice (with templates)** | **Payment — paid** |
+| ![Create invoice with templates](docs/screenshots/create.png) | ![Payment paid](docs/screenshots/pay.png) |
 | **On-chain activity** | **Mobile** |
 | ![Activity](docs/screenshots/activity.png) | ![Mobile](docs/screenshots/mobile.jpeg) |
 | **Monitoring (Sentry)** | |
 | ![Monitoring](docs/screenshots/analytics.png) | |
 
-More in [docs/screenshots/](docs/screenshots/). **Watch the 🎬 [demo video](https://www.loom.com/share/0b08c1208df841ac96ecd61b2b05a7a9)** for the full create → pay → on-chain loop. The demo-video script, onboarding
+More in [docs/screenshots/](docs/screenshots/). Also shipped this feedback
+cycle (screenshots not yet in the gallery above): the in-app
+[Help / FAQ](https://pay-loop-neon.vercel.app/help) page and the
+[Activity page](https://pay-loop-neon.vercel.app/activity)'s paid-vs-pending
+split and settled-volume-by-day/week charts — see
+[docs/GROWTH.md](docs/GROWTH.md) for the full feedback → shipped trace.
+
+**Watch the 🎬 [demo video](https://www.loom.com/share/0b08c1208df841ac96ecd61b2b05a7a9)** for the full create → pay → on-chain loop. The demo-video script, onboarding
 steps, and how to capture proof of wallet interactions are in [DEMO.md](DEMO.md).
 The user-feedback summary (60 responses, avg 5.2/6) is in
-[docs/FEEDBACK.md](docs/FEEDBACK.md), collected via the
-[PayLoop user survey](https://forms.gle/FbtjeS6pYHW4FjwWA) —
-[raw responses (Google Sheet)](https://docs.google.com/spreadsheets/d/1Fijrwspc7AIIbs2a_ydaOWPQyCnI393nA9a5uPGIFwU/edit?usp=sharing).
+[docs/FEEDBACK.md](docs/FEEDBACK.md), collected via a user survey —
+[raw responses (Google Sheet)](https://docs.google.com/spreadsheets/d/10_oCs3CjUw0oyTaaj1oU0VTFeQ2ZKAFkH-K1sr7s5mQ/edit?gid=195454051#gid=195454051).
 
 ## Submission (Level 5 — Blue Belt)
 

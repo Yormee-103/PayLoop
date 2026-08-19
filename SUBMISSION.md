@@ -22,7 +22,7 @@ dashboard screenshots).
 | **Product presentation** | | |
 | Professional pitch deck / PPT | ✅ | Live [/pitch](https://pay-loop-neon.vercel.app/pitch) + [`docs/pitch/PayLoop-Pitch-Deck.pptx`](docs/pitch/PayLoop-Pitch-Deck.pptx) (Problem, Solution, Market, Architecture, Growth, Roadmap) |
 | **Demo** | | |
-| Full product walkthrough/demo video | 🟡 | Script ready in [DEMO.md](DEMO.md); **record the Level-5 Loom video** and add the link to DEMO.md/README |
+| Full product walkthrough/demo video | ✅ | [Level-5 demo video (Loom)](https://www.loom.com/share/0b08c1208df841ac96ecd61b2b05a7a9), linked from README — script in [DEMO.md](DEMO.md) |
 | **Technical standards** | | |
 | Updated documentation | ✅ | README + GROWTH/FEEDBACK/USERS/ARCHITECTURE/ANCHOR/DEMO + Excel + pitch deck |
 | **User onboarding requirements** | | |
@@ -31,7 +31,7 @@ dashboard screenshots).
 | Excel linked in README | ✅ | README → "Feedback collection & Excel export" |
 | README improvement plan + git commit links | ✅ | [docs/GROWTH.md](docs/GROWTH.md) (feedback → shipped → commit) linked from README |
 | Proof of 50+ users | ✅ | [docs/USERS.md](docs/USERS.md) — 60 users, all with on-chain wallet interactions |
-| Screenshots of analytics/transactions | 🟡 | [docs/screenshots/](docs/screenshots/) exist; capture updated Vercel Analytics + Activity screenshots |
+| Screenshots of analytics/transactions | ✅ | [docs/screenshots/](docs/screenshots/) — Activity (with paid-vs-pending + settled-volume charts), Dashboard, Template picker, and Help/FAQ, linked from README |
 | User feedback iteration summary | ✅ | [docs/FEEDBACK.md](docs/FEEDBACK.md) + [docs/GROWTH.md](docs/GROWTH.md) |
 
 ## What's done in the repo (no action needed)

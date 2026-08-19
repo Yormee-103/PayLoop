@@ -4,7 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Alert, Spinner, StatusBadge, EmptyState } from "@/components/ui";
 import { getAllInvoices, type Invoice } from "@/lib/contract";
-import { formatAmount, formatDate, humanizeDescription, shortAddress } from "@/lib/format";
+import {
+  formatAmount,
+  formatDate,
+  fromBaseUnits,
+  humanizeDescription,
+  shortAddress,
+} from "@/lib/format";
 import { config, explorer, isConfigured } from "@/lib/config";
 
 // Public activity feed: reads every invoice straight off the contract and
@@ -82,12 +88,14 @@ export default function ActivityPage() {
   }
 
   const paid = invoices.filter((i) => i.status === "Paid");
+  const pending = invoices.filter((i) => i.status !== "Paid");
   const uniqueWallets = new Set<string>();
   invoices.forEach((i) => {
     uniqueWallets.add(i.freelancer);
     uniqueWallets.add(i.client);
   });
   const totalPaid = paid.reduce((acc, i) => acc + i.amount, 0n);
+  const { granularity, buckets } = bucketSettledVolume(paid);
 
   return (
     <div className="space-y-6">
@@ -139,6 +147,13 @@ export default function ActivityPage() {
           value={formatAmount(totalPaid)}
         />
       </div>
+
+      {invoices.length > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <StatusSplitBar paid={paid.length} pending={pending.length} />
+          <SettledVolumeChart granularity={granularity} buckets={buckets} />
+        </div>
+      )}
 
       {error && (
         <Alert kind="error">
@@ -268,6 +283,152 @@ function Stat({
     <div className="card">
       <p className="text-xs text-slate-400">{label}</p>
       <p className={`mt-1 text-2xl font-bold ${color}`}>{value}</p>
+    </div>
+  );
+}
+
+type VolumeBucket = { key: string; label: string; amount: bigint };
+
+// Groups paid invoices by paidAt into day buckets, or week buckets (Mon-start,
+// UTC) once the paid history spans more than 3 weeks — keeps the chart legible
+// without a date-range picker. Shows only the most recent 12 buckets.
+function bucketSettledVolume(paidInvoices: Invoice[]): {
+  granularity: "day" | "week";
+  buckets: VolumeBucket[];
+} {
+  const withDates = paidInvoices.filter((i) => i.paidAt > 0n);
+  if (withDates.length === 0) return { granularity: "day", buckets: [] };
+
+  const times = withDates.map((i) => Number(i.paidAt) * 1000);
+  const spanDays = (Math.max(...times) - Math.min(...times)) / 86_400_000;
+  const granularity: "day" | "week" = spanDays > 21 ? "week" : "day";
+
+  const map = new Map<string, { start: Date; amount: bigint }>();
+  for (const inv of withDates) {
+    const d = new Date(Number(inv.paidAt) * 1000);
+    const start = new Date(
+      Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+    );
+    if (granularity === "week") {
+      const dayOfWeek = (start.getUTCDay() + 6) % 7; // Monday = 0
+      start.setUTCDate(start.getUTCDate() - dayOfWeek);
+    }
+    const key = start.toISOString().slice(0, 10);
+    const entry = map.get(key) ?? { start, amount: 0n };
+    entry.amount += inv.amount;
+    map.set(key, entry);
+  }
+
+  const buckets = [...map.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .slice(-12)
+    .map(([key, { start, amount }]) => ({
+      key,
+      label: start.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+      }),
+      amount,
+    }));
+
+  return { granularity, buckets };
+}
+
+function StatusSplitBar({
+  paid,
+  pending,
+}: {
+  paid: number;
+  pending: number;
+}) {
+  const total = paid + pending;
+  if (total === 0) return null;
+  const paidPct = (paid / total) * 100;
+
+  return (
+    <div className="card space-y-3">
+      <h2 className="text-sm font-semibold">Paid vs pending</h2>
+      <div className="flex h-3 overflow-hidden rounded-full bg-white/5">
+        {paid > 0 && (
+          <div
+            className="h-full bg-emerald-400"
+            style={{ width: `${paidPct}%` }}
+            title={`${paid} paid`}
+          />
+        )}
+        {pending > 0 && (
+          <div
+            className="h-full bg-amber-400"
+            style={{ width: `${100 - paidPct}%` }}
+            title={`${pending} pending`}
+          />
+        )}
+      </div>
+      <div className="flex gap-4 text-xs text-slate-400">
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-emerald-400" /> Paid (
+          {paid})
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-amber-400" /> Pending (
+          {pending})
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function SettledVolumeChart({
+  granularity,
+  buckets,
+}: {
+  granularity: "day" | "week";
+  buckets: VolumeBucket[];
+}) {
+  if (buckets.length === 0) {
+    return (
+      <div className="card">
+        <h2 className="text-sm font-semibold">
+          Settled volume by {granularity}
+        </h2>
+        <p className="mt-3 text-sm text-slate-500">
+          No paid invoices yet — settled volume charts here once invoices are
+          paid.
+        </p>
+      </div>
+    );
+  }
+
+  const maxAmount = buckets.reduce(
+    (m, b) => (b.amount > m ? b.amount : m),
+    0n
+  );
+  const maxHuman = Number(fromBaseUnits(maxAmount)) || 1;
+
+  return (
+    <div className="card space-y-3">
+      <h2 className="text-sm font-semibold">
+        Settled volume by {granularity} ({config.tokenSymbol})
+      </h2>
+      <div className="flex h-32 items-end gap-2">
+        {buckets.map((b) => {
+          const human = Number(fromBaseUnits(b.amount));
+          const pct = human > 0 ? Math.max((human / maxHuman) * 100, 4) : 0;
+          return (
+            <div
+              key={b.key}
+              className="flex h-full flex-1 flex-col items-center justify-end gap-1"
+              title={`${b.label}: ${formatAmount(b.amount)} ${config.tokenSymbol}`}
+            >
+              <div
+                className="w-full rounded-t-md bg-brand-500"
+                style={{ height: `${pct}%` }}
+              />
+              <span className="text-[10px] text-slate-500">{b.label}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

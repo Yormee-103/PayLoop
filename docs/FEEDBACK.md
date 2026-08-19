@@ -6,7 +6,7 @@ Stellar testnet: 10 Level-4 testers (summarized below) plus 50 from the
 Level-5 onboarding round. This is the summary for the submission.
 
 **Raw responses (live Google Sheet, view-only):**
-https://docs.google.com/spreadsheets/d/1Fijrwspc7AIIbs2a_ydaOWPQyCnI393nA9a5uPGIFwU/edit?usp=sharing
+https://docs.google.com/spreadsheets/d/10_oCs3CjUw0oyTaaj1oU0VTFeQ2ZKAFkH-K1sr7s5mQ/edit?gid=195454051#gid=195454051
 
 ## Headline metrics
 
@@ -99,7 +99,7 @@ traces to a written request, and each maps to a commit (see
 
 - New **survey responses**: **60 total** (10 from Level 4 + 50 in the
   Level-5 onboarding round). See the live
-  [Google Sheet](https://docs.google.com/spreadsheets/d/1Fijrwspc7AIIbs2a_ydaOWPQyCnI393nA9a5uPGIFwU/edit?usp=sharing)
+  [Google Sheet](https://docs.google.com/spreadsheets/d/10_oCs3CjUw0oyTaaj1oU0VTFeQ2ZKAFkH-K1sr7s5mQ/edit?gid=195454051#gid=195454051)
   and the committed [Excel export](survey-responses.xlsx).
 - **Proof of usage:** on-chain activity feed
   [/activity](https://pay-loop-neon.vercel.app/activity) with unique-wallet

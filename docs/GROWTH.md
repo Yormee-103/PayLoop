@@ -11,7 +11,7 @@ what we're building next — with the git commits that shipped each improvement.
   collects name, email, wallet address, network, product rating, and written
   feedback.
 - **Raw responses (Google Sheet, view-only):**
-  [link](https://docs.google.com/spreadsheets/d/1Fijrwspc7AIIbs2a_ydaOWPQyCnI393nA9a5uPGIFwU/edit?usp=sharing)
+  [link](https://docs.google.com/spreadsheets/d/10_oCs3CjUw0oyTaaj1oU0VTFeQ2ZKAFkH-K1sr7s5mQ/edit?gid=195454051#gid=195454051)
 - **Excel export (committed):** [`docs/survey-responses.xlsx`](survey-responses.xlsx)
   — regenerated from the form CSV with `python3 scripts/build-excel.py`.
 - **In-app 💬 feedback widget** → `/api/feedback` (optional webhook sink).

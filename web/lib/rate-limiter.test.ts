@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach } from "vitest";
 import { InMemoryRateLimiter, RateLimiterConfig } from "./rate-limiter";
 
 const TEST_CONFIG: RateLimiterConfig = {

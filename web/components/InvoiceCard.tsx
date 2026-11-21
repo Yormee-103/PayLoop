@@ -7,6 +7,7 @@ import { formatAmount, formatDate, humanizeDescription, shortAddress } from "@/l
 import { config } from "@/lib/config";
 import { StatusBadge } from "./ui";
 import { InvoicePreview } from "./InvoiceDocument";
+import { PaymentQR } from "./PaymentQR";
 
 export function InvoiceCard({
   invoice,
@@ -17,6 +18,7 @@ export function InvoiceCard({
 }) {
   const [copied, setCopied] = useState(false);
   const [reminded, setReminded] = useState(false);
+  const [showQR, setShowQR] = useState(false);
   const [preview, setPreview] = useState(false);
 
   function link() {
@@ -115,6 +117,13 @@ export function InvoiceCard({
           <button onClick={copyReminder} className="btn-ghost text-sm" title="Copy a payment reminder message">
             {reminded ? "Copied ✓" : "Remind"}
           </button>
+          <button
+            onClick={() => setShowQR((v) => !v)}
+            className="btn-ghost text-sm"
+            title="Show QR code"
+          >
+            {showQR ? "Hide QR" : "QR"}
+          </button>
           <Link
             href={`/pay/${invoice.id}`}
             className="btn-ghost text-sm"
@@ -125,6 +134,13 @@ export function InvoiceCard({
           <button onClick={() => setPreview(true)} className="btn-ghost text-sm" title="Preview / save as PDF">
             PDF
           </button>
+        </div>
+      )}
+
+      {showQR && (
+        <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-black/20 gap-2 border border-white/5">
+          <PaymentQR url={link()} size={130} />
+          <p className="text-xs text-slate-400">Scan to pay invoice #{invoice.id}</p>
         </div>
       )}
 

@@ -12,6 +12,7 @@ import {
   shortAddress,
 } from "@/lib/format";
 import { config, explorer, isConfigured } from "@/lib/config";
+import { toCsv } from "@/lib/csv";
 
 // Public activity feed: reads every invoice straight off the contract and
 // surfaces aggregate usage. Doubles as verifiable proof of wallet interactions
@@ -40,7 +41,7 @@ export default function ActivityPage() {
 
   function downloadCsv() {
     // Export every on-chain invoice as CSV — reusable proof of usage activity
-    // for analytics / reporting without a backend.
+    // for analytics / reporting without a backend. Protected against formula injection via toCsv.
     const header = [
       "invoice_id",
       "description",
@@ -51,25 +52,23 @@ export default function ActivityPage() {
       "created_at_utc",
       "paid_at_utc",
     ];
-    const esc = (s: string) => `"${s.replaceAll('"', '""')}"`;
     const rows = [...invoices]
       .sort((a, b) => Number(a.id) - Number(b.id))
-      .map((i) =>
-        [
-          i.id,
-          esc(humanizeDescription(i.description)),
-          formatAmount(i.amount),
-          i.status,
-          i.freelancer,
-          i.client,
-          i.createdAt > 0n
-            ? new Date(Number(i.createdAt) * 1000).toISOString()
-            : "",
-          i.paidAt > 0n ? new Date(Number(i.paidAt) * 1000).toISOString() : "",
-        ].join(",")
-      );
-    const blob = new Blob([[header.join(","), ...rows].join("\n")], {
-      type: "text/csv",
+      .map((i) => [
+        i.id,
+        humanizeDescription(i.description),
+        formatAmount(i.amount),
+        i.status,
+        i.freelancer,
+        i.client,
+        i.createdAt > 0n
+          ? new Date(Number(i.createdAt) * 1000).toISOString()
+          : "",
+        i.paidAt > 0n ? new Date(Number(i.paidAt) * 1000).toISOString() : "",
+      ]);
+    const csvContent = toCsv([header, ...rows]);
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;",
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

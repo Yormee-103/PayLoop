@@ -8,6 +8,7 @@ import { InvoicePreview } from "@/components/InvoiceDocument";
 import { getAllInvoices, type Invoice } from "@/lib/contract";
 import { formatAmount, formatDate, humanizeDescription, shortAddress } from "@/lib/format";
 import { config, isConfigured } from "@/lib/config";
+import { buildHistoryCsv } from "@/lib/csv";
 
 type StatusFilter = "all" | "Pending" | "Paid";
 type RoleFilter = "all" | "freelancer" | "client";
@@ -71,6 +72,25 @@ export default function HistoryPage() {
       })
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   }, [mine, query, status, role, address]);
+
+  const downloadCsv = useCallback(() => {
+    if (!address || filtered.length === 0) return;
+    const csvContent = buildHistoryCsv(
+      filtered,
+      address,
+      humanizeDescription,
+      formatAmount
+    );
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `payloop-history-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [filtered, address]);
 
   if (!isConfigured()) {
     return (
@@ -142,9 +162,23 @@ export default function HistoryPage() {
             </button>
           ))}
         </div>
-        <button onClick={load} disabled={loading} className="btn-ghost ml-auto text-xs">
-          {loading ? <Spinner /> : "Refresh"}
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={downloadCsv}
+            disabled={loading || filtered.length === 0}
+            className="btn-ghost text-xs"
+            title={
+              filtered.length === 0
+                ? "No invoices to export"
+                : "Export filtered invoices as CSV"
+            }
+          >
+            Export CSV
+          </button>
+          <button onClick={load} disabled={loading} className="btn-ghost text-xs">
+            {loading ? <Spinner /> : "Refresh"}
+          </button>
+        </div>
       </div>
 
       {error && (

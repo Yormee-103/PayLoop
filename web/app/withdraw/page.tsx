@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useWallet } from "@/components/WalletProvider";
 import { Alert, Spinner } from "@/components/ui";
 import { getTokenBalance } from "@/lib/contract";
-import { formatAmount, fromBaseUnits } from "@/lib/format";
+import { formatAmount, fromBaseUnits, parseAmount } from "@/lib/format";
 import { config } from "@/lib/config";
 
 // Mocked USDC -> Naira off-ramp. A production build would hand off to a licensed
@@ -28,17 +28,19 @@ export default function WithdrawPage() {
     if (address) getTokenBalance(address).then(setBalance).catch(() => {});
   }, [address]);
 
-  const naira = amount ? Number(amount) * NGN_PER_USDC : 0;
+  const parsedWithdrawAmount = parseAmount(amount);
+  const naira = parsedWithdrawAmount.ok
+    ? Number(parsedWithdrawAmount.human) * NGN_PER_USDC
+    : 0;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const n = Number(amount);
-    if (!Number.isFinite(n) || n <= 0) {
-      setError("Enter an amount greater than zero.");
+    if (!parsedWithdrawAmount.ok) {
+      setError(parsedWithdrawAmount.error);
       return;
     }
-    if (balance !== null && n > Number(fromBaseUnits(balance))) {
+    if (balance !== null && parsedWithdrawAmount.value > balance) {
       setError("Amount exceeds your available balance.");
       return;
     }
@@ -124,13 +126,22 @@ export default function WithdrawPage() {
             </label>
             <input
               id="amt"
-              className="input"
+              className={`input ${
+                amount && !parsedWithdrawAmount.ok
+                  ? "border-rose-500/70 focus:border-rose-500"
+                  : ""
+              }`}
               inputMode="decimal"
               placeholder="100.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               disabled={stage === "processing"}
             />
+            {amount && !parsedWithdrawAmount.ok && (
+              <p className="mt-1 text-xs text-rose-400">
+                {parsedWithdrawAmount.error}
+              </p>
+            )}
             {naira > 0 && (
               <p className="mt-1.5 text-sm text-slate-400">
                 You&apos;ll receive ≈{" "}

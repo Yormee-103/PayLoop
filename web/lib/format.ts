@@ -3,15 +3,88 @@ import { config } from "./config";
 // Token amounts are integers in "stroops" of the token (7 decimals for USDC).
 // The UI works in human units; convert at the boundary.
 
-export function toBaseUnits(human: string | number): bigint {
-  const s = typeof human === "number" ? human.toString() : human.trim();
-  if (!s) return 0n;
-  const [whole, frac = ""] = s.split(".");
+export type ParseAmountResult =
+  | { ok: true; value: bigint; human: string }
+  | { ok: false; error: string };
+
+/**
+ * Validates and parses a human-readable token amount into its base integer units.
+ * Rejects scientific notation ("1e3"), hex ("0x10"), underscores ("1_000"),
+ * non-finite strings ("Infinity"), negative values, extra decimals (> tokenDecimals),
+ * and amounts less than one base unit (0.0000001).
+ */
+export function parseAmount(
+  input: string | number | undefined | null
+): ParseAmountResult {
+  if (input === undefined || input === null) {
+    return { ok: false, error: "Enter an amount greater than zero." };
+  }
+  const s = typeof input === "number" ? input.toString() : input.trim();
+  if (!s) {
+    return { ok: false, error: "Enter an amount greater than zero." };
+  }
+
+  // Friendly errors for common non-standard inputs
+  if (/e/i.test(s)) {
+    return {
+      ok: false,
+      error: "Scientific notation is not supported. Enter a standard decimal amount.",
+    };
+  }
+  if (s.startsWith("0x") || s.startsWith("0X")) {
+    return {
+      ok: false,
+      error: "Hexadecimal numbers are not supported. Enter a standard decimal amount.",
+    };
+  }
+  if (s.includes("_")) {
+    return {
+      ok: false,
+      error: "Underscores are not supported in amounts. Enter digits only.",
+    };
+  }
+  if (s === "Infinity" || s === "-Infinity" || s === "NaN") {
+    return { ok: false, error: "Enter a valid finite amount." };
+  }
+
   const decimals = config.tokenDecimals;
+  // Strict regex: positive integer or decimal with up to `decimals` decimal places
+  const regex = new RegExp(`^\\d+(\\.\\d{1,${decimals}})?$`);
+  if (!regex.test(s)) {
+    if (s.startsWith("-")) {
+      return { ok: false, error: "Enter an amount greater than zero." };
+    }
+    const parts = s.split(".");
+    if (parts.length > 2) {
+      return { ok: false, error: "Enter a valid amount with only one decimal point." };
+    }
+    if (parts[1] && parts[1].length > decimals) {
+      return {
+        ok: false,
+        error: `Maximum ${decimals} decimal places allowed.`,
+      };
+    }
+    return { ok: false, error: "Enter a valid amount (e.g. 1500.00)." };
+  }
+
+  const [whole, frac = ""] = s.split(".");
   const fracPadded = (frac + "0".repeat(decimals)).slice(0, decimals);
-  const sign = whole.startsWith("-") ? -1n : 1n;
-  const wholeAbs = whole.replace("-", "") || "0";
-  return sign * (BigInt(wholeAbs) * 10n ** BigInt(decimals) + BigInt(fracPadded || "0"));
+  const baseUnits =
+    BigInt(whole) * 10n ** BigInt(decimals) + BigInt(fracPadded || "0");
+
+  if (baseUnits <= 0n) {
+    return { ok: false, error: "Minimum amount is 0.0000001 (1 base unit)." };
+  }
+
+  return { ok: true, value: baseUnits, human: s };
+}
+
+export function toBaseUnits(human: string | number): bigint {
+  const parsed = parseAmount(human);
+  if (!parsed.ok) {
+    throw new Error(`Invalid amount "${human}": ${parsed.error}`);
+  }
+  return parsed.value;
 }
 
 export function fromBaseUnits(base: bigint | string | number): string {

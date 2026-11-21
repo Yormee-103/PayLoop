@@ -6,7 +6,7 @@ import { useWallet } from "@/components/WalletProvider";
 import { Alert, Spinner, TxLink } from "@/components/ui";
 import { InvoicePreview } from "@/components/InvoiceDocument";
 import { createInvoice } from "@/lib/contract";
-import { toBaseUnits } from "@/lib/format";
+import { parseAmount, toBaseUnits } from "@/lib/format";
 import { config, isConfigured } from "@/lib/config";
 import {
   BUILTIN_TEMPLATES,
@@ -34,6 +34,7 @@ export default function CreatePage() {
   const [templateName, setTemplateName] = useState("");
 
   const configured = isConfigured();
+  const parsedAmount = useMemo(() => parseAmount(amount), [amount]);
 
   function validate(): string | null {
     if (!client.startsWith("G") || client.length !== 56) {
@@ -42,9 +43,8 @@ export default function CreatePage() {
     if (client === address) {
       return "The client can't be your own address.";
     }
-    const n = Number(amount);
-    if (!Number.isFinite(n) || n <= 0) {
-      return "Enter an amount greater than zero.";
+    if (!parsedAmount.ok) {
+      return parsedAmount.error;
     }
     if (!description.trim()) {
       return "Add a short description of the work.";
@@ -67,6 +67,13 @@ export default function CreatePage() {
       setError("Add a description before saving it as a template.");
       return;
     }
+    if (amount) {
+      const p = parseAmount(amount);
+      if (!p.ok) {
+        setError(`Cannot save template with invalid amount: ${p.error}`);
+        return;
+      }
+    }
     const name = templateName.trim() || description.trim().slice(0, 24);
     setCustomTemplates(saveCustomTemplate(name, description, amount));
     setTemplateName("");
@@ -75,13 +82,13 @@ export default function CreatePage() {
 
   const previewInvoice = useMemo(
     () =>
-      client && description && Number(amount) > 0
+      client && description.trim() && parsedAmount.ok
         ? {
             id: "—",
             freelancer: address ?? "",
             client,
             token: config.tokenId,
-            amount: toBaseUnits(amount),
+            amount: parsedAmount.value,
             description: description.trim(),
             dueDate: dueDate
               ? BigInt(Math.floor(new Date(dueDate).getTime() / 1000))
@@ -91,7 +98,7 @@ export default function CreatePage() {
             paidAt: 0n,
           }
         : null,
-    [client, amount, description, dueDate, address]
+    [client, parsedAmount, description, dueDate, address]
   );
 
   function openPreview() {
@@ -297,12 +304,19 @@ export default function CreatePage() {
             </label>
             <input
               id="amount"
-              className="input"
+              className={`input ${
+                amount && !parsedAmount.ok
+                  ? "border-rose-500/70 focus:border-rose-500"
+                  : ""
+              }`}
               inputMode="decimal"
               placeholder="1500.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
             />
+            {amount && !parsedAmount.ok && (
+              <p className="mt-1 text-xs text-rose-400">{parsedAmount.error}</p>
+            )}
           </div>
 
           <div>

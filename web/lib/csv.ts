@@ -43,3 +43,67 @@ export function toCsv(rows: unknown[][]): string {
   const content = rows.map((row) => row.map(escapeCell).join(",")).join("\r\n");
   return `${UTF8_BOM}${content}`;
 }
+
+export const HISTORY_CSV_HEADERS = [
+  "invoice_id",
+  "my_role",
+  "description",
+  "amount_usdc",
+  "status",
+  "counterparty_address",
+  "freelancer_address",
+  "client_address",
+  "created_at_utc",
+  "paid_at_utc",
+] as const;
+
+export interface HistoryInvoiceItem {
+  id: string;
+  description: string;
+  amount: bigint;
+  status: string;
+  freelancer: string;
+  client: string;
+  createdAt: bigint;
+  paidAt: bigint;
+}
+
+/**
+ * Builds a formula-injection-safe CSV string of personal invoice history.
+ *
+ * @param invoices - List of invoices to export (already filtered by user).
+ * @param currentAddress - The connected user's wallet address to derive `my_role` and counterparty.
+ * @param humanizeDesc - Function to format raw description string (e.g. humanizeDescription).
+ * @param formatAmt - Function to format base units to human-readable string (e.g. formatAmount).
+ */
+export function buildHistoryCsv(
+  invoices: HistoryInvoiceItem[],
+  currentAddress: string,
+  humanizeDesc: (desc: string) => string = (d) => d,
+  formatAmt: (amount: bigint) => string = (a) => (Number(a) / 10_000_000).toFixed(2)
+): string {
+  const rows = invoices.map((i) => {
+    const isFreelancer = i.freelancer.toLowerCase() === currentAddress.toLowerCase();
+    const myRole = isFreelancer ? "freelancer" : "client";
+    const counterparty = isFreelancer ? i.client : i.freelancer;
+    const createdAtUtc =
+      i.createdAt > 0n ? new Date(Number(i.createdAt) * 1000).toISOString() : "";
+    const paidAtUtc =
+      i.paidAt > 0n ? new Date(Number(i.paidAt) * 1000).toISOString() : "";
+
+    return [
+      i.id,
+      myRole,
+      humanizeDesc(i.description),
+      formatAmt(i.amount),
+      i.status,
+      counterparty,
+      i.freelancer,
+      i.client,
+      createdAtUtc,
+      paidAtUtc,
+    ];
+  });
+
+  return toCsv([[...HISTORY_CSV_HEADERS], ...rows]);
+}

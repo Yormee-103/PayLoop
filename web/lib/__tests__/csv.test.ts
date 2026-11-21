@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { escapeCell, FORMULA_PREFIXES, toCsv, UTF8_BOM } from "../csv";
+import {
+  buildHistoryCsv,
+  escapeCell,
+  FORMULA_PREFIXES,
+  toCsv,
+  UTF8_BOM,
+} from "../csv";
 
 describe("CSV Utility (lib/csv.ts)", () => {
   describe("escapeCell", () => {
@@ -89,6 +95,77 @@ describe("CSV Utility (lib/csv.ts)", () => {
 
     it("ensures all formula prefixes are listed in FORMULA_PREFIXES constant", () => {
       expect(FORMULA_PREFIXES).toEqual(["=", "+", "-", "@", "\t", "\r"]);
+    });
+  });
+
+  describe("buildHistoryCsv", () => {
+    const userAddress = "GD5J4XZAUSER123";
+    const clientAddress = "GB9K8YZAOTHER456";
+
+    it("correctly derives 'freelancer' and 'client' roles with counterparty", () => {
+      const invoices = [
+        {
+          id: "101",
+          description: "Frontend consulting",
+          amount: 500_0000000n,
+          status: "Paid",
+          freelancer: userAddress,
+          client: clientAddress,
+          createdAt: 1700000000n,
+          paidAt: 1700003600n,
+        },
+        {
+          id: "102",
+          description: "Design review",
+          amount: 250_0000000n,
+          status: "Pending",
+          freelancer: clientAddress,
+          client: userAddress,
+          createdAt: 1700010000n,
+          paidAt: 0n,
+        },
+      ];
+
+      const csv = buildHistoryCsv(invoices, userAddress);
+      expect(csv.startsWith(UTF8_BOM)).toBe(true);
+
+      // Header check
+      expect(csv).toContain(
+        `"invoice_id","my_role","description","amount_usdc","status","counterparty_address","freelancer_address","client_address","created_at_utc","paid_at_utc"`
+      );
+
+      // Row 1: user is freelancer
+      expect(csv).toContain(
+        `"101","freelancer","Frontend consulting","500.00","Paid","${clientAddress}","${userAddress}","${clientAddress}"`
+      );
+
+      // Row 2: user is client
+      expect(csv).toContain(
+        `"102","client","Design review","250.00","Pending","${clientAddress}","${clientAddress}","${userAddress}"`
+      );
+    });
+
+    it("sanitizes malicious formula injection in descriptions", () => {
+      const maliciousInvoices = [
+        {
+          id: "103",
+          description: "=CMD|' /C calc'!A0",
+          amount: 100_0000000n,
+          status: "Pending",
+          freelancer: userAddress,
+          client: clientAddress,
+          createdAt: 1700000000n,
+          paidAt: 0n,
+        },
+      ];
+
+      const csv = buildHistoryCsv(maliciousInvoices, userAddress);
+      expect(csv).toContain(`"'=CMD|' /C calc'!A0"`);
+    });
+
+    it("handles empty invoice array with header only", () => {
+      const csv = buildHistoryCsv([], userAddress);
+      expect(csv).toContain(`"invoice_id","my_role","description"`);
     });
   });
 });

@@ -7,6 +7,7 @@ import { Alert, Spinner, TxLink } from "@/components/ui";
 import { InvoicePreview } from "@/components/InvoiceDocument";
 import { createInvoice } from "@/lib/contract";
 import { toBaseUnits } from "@/lib/format";
+import { validateClientAddress } from "@/lib/address";
 import { config, isConfigured } from "@/lib/config";
 import {
   BUILTIN_TEMPLATES,
@@ -34,13 +35,14 @@ export default function CreatePage() {
   const [templateName, setTemplateName] = useState("");
 
   const configured = isConfigured();
+  const validatedClient = useMemo(
+    () => validateClientAddress(client, address),
+    [client, address]
+  );
 
   function validate(): string | null {
-    if (!client.startsWith("G") || client.length !== 56) {
-      return "Enter a valid client Stellar address (starts with G, 56 chars).";
-    }
-    if (client === address) {
-      return "The client can't be your own address.";
+    if (!validatedClient.valid) {
+      return validatedClient.error;
     }
     const n = Number(amount);
     if (!Number.isFinite(n) || n <= 0) {
@@ -75,11 +77,11 @@ export default function CreatePage() {
 
   const previewInvoice = useMemo(
     () =>
-      client && description && Number(amount) > 0
+      validatedClient.valid && description && Number(amount) > 0
         ? {
             id: "—",
             freelancer: address ?? "",
-            client,
+            client: validatedClient.address,
             token: config.tokenId,
             amount: toBaseUnits(amount),
             description: description.trim(),
@@ -91,7 +93,7 @@ export default function CreatePage() {
             paidAt: 0n,
           }
         : null,
-    [client, amount, description, dueDate, address]
+    [validatedClient, amount, description, dueDate, address]
   );
 
   function openPreview() {
@@ -278,17 +280,45 @@ export default function CreatePage() {
           </div>
 
           <div>
-            <label className="label" htmlFor="client">
-              Client wallet address
-            </label>
-            <input
-              id="client"
-              className="input font-mono text-xs"
-              placeholder="GABC…"
-              value={client}
-              onChange={(e) => setClient(e.target.value.trim())}
-              autoComplete="off"
-            />
+            <div className="flex items-center justify-between">
+              <label className="label" htmlFor="client">
+                Client wallet address
+              </label>
+              {client && validatedClient.valid && (
+                <span className="text-xs font-medium text-emerald-400 flex items-center gap-1">
+                  ✓ Valid Stellar address
+                </span>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                id="client"
+                className={`input font-mono text-xs pr-8 ${
+                  client && !validatedClient.valid
+                    ? "border-rose-500/70 focus:border-rose-500"
+                    : client && validatedClient.valid
+                    ? "border-emerald-500/70 focus:border-emerald-500"
+                    : ""
+                }`}
+                placeholder="GABC…"
+                value={client}
+                onChange={(e) => setClient(e.target.value.trim())}
+                autoComplete="off"
+              />
+              {client && validatedClient.valid && (
+                <span
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400 text-sm font-bold pointer-events-none"
+                  aria-hidden="true"
+                >
+                  ✓
+                </span>
+              )}
+            </div>
+            {client && !validatedClient.valid && (
+              <p className="mt-1 text-xs text-rose-400">
+                {validatedClient.error}
+              </p>
+            )}
           </div>
 
           <div>

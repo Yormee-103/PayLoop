@@ -13,6 +13,7 @@ export function FeedbackWidget() {
   const [rating, setRating] = useState(0);
   const [message, setMessage] = useState("");
   const [role, setRole] = useState("");
+  const [honeypot, setHoneypot] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "done" | "error">(
     "idle"
   );
@@ -30,9 +31,20 @@ export function FeedbackWidget() {
       const res = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating, message: message.trim(), role, address }),
+        body: JSON.stringify({
+          rating,
+          message: message.trim(),
+          role,
+          address,
+          hp: honeypot,
+        }),
       });
       if (!res.ok) {
+        if (res.status === 429) {
+          throw new Error(
+            "You're sending feedback too fast. Please wait a minute and try again."
+          );
+        }
         const d = await res.json().catch(() => ({}));
         throw new Error(d.error ?? "Could not send feedback.");
       }
@@ -49,6 +61,7 @@ export function FeedbackWidget() {
       setRating(0);
       setMessage("");
       setRole("");
+      setHoneypot("");
       setState("idle");
       setErr(null);
     }, 200);
@@ -99,6 +112,17 @@ export function FeedbackWidget() {
               </div>
             ) : (
               <form onSubmit={submit} className="space-y-4">
+                {/* Honeypot field to trap automated spambots */}
+                <input
+                  type="text"
+                  name="hp"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                  tabIndex={-1}
+                  autoComplete="off"
+                  style={{ display: "none" }}
+                  aria-hidden="true"
+                />
                 <div>
                   <label className="label">How was your experience?</label>
                   <div className="flex gap-1">

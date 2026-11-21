@@ -23,7 +23,7 @@ defaults:
 
 jobs:
   lint-build:
-    name: install · lint · build
+    name: install · lint · test · build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,6 +40,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Test
+        run: npm test
 
       - name: Build
         run: npm run build

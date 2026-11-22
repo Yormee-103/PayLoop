@@ -35,6 +35,11 @@ export default function CreatePage() {
 
   const configured = isConfigured();
 
+  const today = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
+
   function validate(): string | null {
     if (!client.startsWith("G") || client.length !== 56) {
       return "Enter a valid client Stellar address (starts with G, 56 chars).";
@@ -48,6 +53,9 @@ export default function CreatePage() {
     }
     if (!description.trim()) {
       return "Add a short description of the work.";
+    }
+    if (dueDate && dueDate < today) {
+      return "Due date cannot be in the past.";
     }
     return null;
   }
@@ -327,6 +335,7 @@ export default function CreatePage() {
               id="due"
               type="date"
               className="input"
+              min={today}
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
             />

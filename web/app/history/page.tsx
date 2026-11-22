@@ -101,12 +101,21 @@ export default function HistoryPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Invoice history</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Every invoice where you&apos;re the freelancer or the client, with
-          search and filtering.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Invoice history</h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Every invoice where you&apos;re the freelancer or the client, with
+            search and filtering.
+          </p>
+        </div>
+        <Link
+          href="/statement"
+          className="btn-ghost text-xs flex items-center gap-1.5"
+          title="Generate proof of income statement"
+        >
+          <span>📄</span> Proof of income statement →
+        </Link>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

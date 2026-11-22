@@ -53,6 +53,19 @@ npm run build
 CI (`.github/workflows/`) runs the same checks on every PR; both must be green
 for review.
 
+## Developing in a Dev Container / GitHub Codespaces
+
+PayLoop includes a preconfigured Dev Container (`.devcontainer/`) equipped with:
+- **Rust Toolchain**: Stable Rust with `rustfmt`, `clippy`, and `wasm32v1-none` target.
+- **Stellar CLI**: Bundled for local Soroban contract compilation and simulations.
+- **Node.js 22 LTS**: Matching the `web/` workspace runtime engine.
+
+To get started:
+1. Open the repository in VS Code.
+2. When prompted, click **Reopen in Container** (or run `Dev Containers: Reopen in Container` from the command palette).
+3. In GitHub Codespaces, selecting this repository will automatically provision this environment.
+4. Run `cargo test` in `contracts/` and `npm run build` in `web/` to confirm readiness.
+
 ## Review process
 
 - Maintainers review PRs by impact area: contract changes get a deliberate

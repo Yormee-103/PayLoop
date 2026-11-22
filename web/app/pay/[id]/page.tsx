@@ -252,18 +252,22 @@ export default function PayPage({
                     <p>
                       Your balance is {formatAmount(balance ?? 0n)}{" "}
                       {config.tokenSymbol}, but this invoice is for{" "}
-                      {formatAmount(invoice.amount)} {config.tokenSymbol}. Grab
-                      test {config.tokenSymbol} to continue:
+                      {formatAmount(invoice.amount)} {config.tokenSymbol}.
+                      {config.network === "TESTNET"
+                        ? ` Grab test ${config.tokenSymbol} to continue:`
+                        : ` Please fund your wallet with ${config.tokenSymbol} to continue.`}
                     </p>
-                    <div className="mt-2">
-                      <FaucetButton
-                        onDone={() =>
-                          getTokenBalance(address)
-                            .then(setBalance)
-                            .catch(() => {})
-                        }
-                      />
-                    </div>
+                    {config.network === "TESTNET" && (
+                      <div className="mt-2">
+                        <FaucetButton
+                          onDone={() =>
+                            getTokenBalance(address)
+                              .then(setBalance)
+                              .catch(() => {})
+                          }
+                        />
+                      </div>
+                    )}
                   </Alert>
                 )}
                 <button

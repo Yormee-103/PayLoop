@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useWallet } from "./WalletProvider";
 import { Spinner } from "./ui";
+import { config } from "@/lib/config";
 
 // Requests test USDC from the server-side faucet (which holds the issuer key).
 export function FaucetButton({ onDone }: { onDone?: () => void }) {
@@ -32,7 +33,7 @@ export function FaucetButton({ onDone }: { onDone?: () => void }) {
     }
   }
 
-  if (!address) return null;
+  if (config.network !== "TESTNET" || !address) return null;
 
   return (
     <div className="relative">

@@ -81,7 +81,7 @@ export default function DashboardPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <div className="flex gap-2">
-          <FaucetButton onDone={load} />
+          {config.network === "TESTNET" && <FaucetButton onDone={load} />}
           <Link href="/create" className="btn-primary text-sm">
             New invoice
           </Link>

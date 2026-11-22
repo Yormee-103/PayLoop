@@ -262,7 +262,7 @@ npm install
 npm run dev
 ```
 
-See [contracts/DEPLOYMENT.md](contracts/DEPLOYMENT.md) for the full testnet deploy + token setup steps.
+See [contracts/DEPLOYMENT.md](contracts/DEPLOYMENT.md) for testnet deploy + token setup steps, or [docs/LOCAL-NETWORK.md](docs/LOCAL-NETWORK.md) for running a local standalone Stellar Quickstart environment.
 
 ## Repository layout
 
@@ -286,6 +286,7 @@ PayLoop/
 │   ├── ANCHOR.md              Mock vs. production off-ramp (SEP-24)
 │   ├── FEEDBACK.md            User-feedback summary
 │   ├── GROWTH.md              Feedback→shipped table + next-phase plan
+│   ├── LOCAL-NETWORK.md       Local Stellar Quickstart development guide
 │   ├── USERS.md               60-user proof log
 │   ├── survey-responses.csv   Google Form CSV export
 │   ├── survey-responses.xlsx  Generated Excel export (Responses + Summary)

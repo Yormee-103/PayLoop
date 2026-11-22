@@ -7,61 +7,67 @@ import {
   useEffect,
   useState,
 } from "react";
+import {
+  type Theme,
+  STORAGE_KEY,
+  getInitialTheme,
+  getSystemTheme,
+  applyTheme,
+} from "@/lib/theme";
 
-// Dark/light theme with dark as the default. The theme is persisted to
-// localStorage and applied by toggling the `.light` class on <html> so the
-// CSS overrides in globals.css take effect without a full page reload.
+export { type Theme, STORAGE_KEY, getInitialTheme, getSystemTheme, applyTheme };
 
-type Theme = "dark" | "light";
-
-type ThemeContextValue = {
+export type ThemeContextValue = {
   theme: Theme;
   toggle: () => void;
+  setTheme: (theme: Theme) => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-const STORAGE_KEY = "payloop.theme";
-
-function getInitialTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "light" || stored === "dark") return stored;
-  } catch {
-    // localStorage unavailable (private mode) — fall back to dark.
-  }
-  return "dark";
-}
-
-function applyTheme(theme: Theme) {
-  document.documentElement.classList.toggle("light", theme === "light");
-  document.documentElement.style.colorScheme = theme;
-}
-
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setThemeState] = useState<Theme>("dark");
 
-  // Hydrate after mount to avoid SSR mismatch; defaults to dark.
   useEffect(() => {
-    setTheme(getInitialTheme());
+    const initial = getInitialTheme();
+    setThemeState(initial);
+    applyTheme(initial);
+
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const media = window.matchMedia("(prefers-color-scheme: light)");
+    const handler = (e: MediaQueryListEvent) => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) {
+          const sysTheme: Theme = e.matches ? "light" : "dark";
+          setThemeState(sysTheme);
+          applyTheme(sysTheme);
+        }
+      } catch {
+        // storage blocked
+      }
+    };
+
+    media.addEventListener("change", handler);
+    return () => media.removeEventListener("change", handler);
   }, []);
 
-  useEffect(() => {
-    applyTheme(theme);
+  const setTheme = useCallback((nextTheme: Theme) => {
+    setThemeState(nextTheme);
+    applyTheme(nextTheme);
     try {
-      localStorage.setItem(STORAGE_KEY, theme);
+      localStorage.setItem(STORAGE_KEY, nextTheme);
     } catch {
-      // Non-fatal if storage is blocked.
+      // Non-fatal if storage is blocked
     }
-  }, [theme]);
+  }, []);
 
   const toggle = useCallback(() => {
-    setTheme((t) => (t === "dark" ? "light" : "dark"));
-  }, []);
+    setTheme(theme === "dark" ? "light" : "dark");
+  }, [theme, setTheme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggle }}>
+    <ThemeContext.Provider value={{ theme, toggle, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

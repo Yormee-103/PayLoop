@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import { WalletProvider } from "@/components/WalletProvider";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import { ThemeProvider, STORAGE_KEY } from "@/components/ThemeProvider";
 import { Navbar } from "@/components/Navbar";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { OnboardingTour } from "@/components/OnboardingTour";
@@ -25,13 +25,19 @@ export const viewport: Viewport = {
   themeColor: "#0b1220",
 };
 
+// Inline script executed in <head> before paint to prevent theme flashing on initial visit.
+const themeInitScript = `(function(){try{var s=localStorage.getItem('${STORAGE_KEY}');var t=s==='light'||s==='dark'?s:(window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');var d=document.documentElement;if(t==='light'){d.classList.add('light');d.classList.remove('dark');d.style.colorScheme='light';}else{d.classList.add('dark');d.classList.remove('light');d.style.colorScheme='dark';}}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body>
         <ThemeProvider>
           <WalletProvider>

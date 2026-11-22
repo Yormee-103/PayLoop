@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { TOUR_STORAGE_KEY, shouldAutoOpenTour } from "@/lib/tour";
 
 // First-run guided tour + replayable walkthrough (navbar "?"). Opens
 // automatically once per browser, and can be reopened anytime via the
@@ -37,30 +39,46 @@ const steps = [
   },
 ];
 
-const STORAGE_KEY = "payloop.tour.done";
-
 export function OnboardingTour() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
+  const pathname = usePathname();
 
-  useEffect(() => {
-    const firstVisit =
-      typeof window === "undefined" || !localStorage.getItem(STORAGE_KEY);
-    if (firstVisit) setOpen(true);
-    const onOpen = () => setOpen(true);
-    window.addEventListener("payloop:open-tour", onOpen);
-    return () => window.removeEventListener("payloop:open-tour", onOpen);
-  }, []);
-
-  function close() {
+  const close = useCallback(() => {
     setOpen(false);
     setStep(0);
     try {
-      localStorage.setItem(STORAGE_KEY, "1");
+      localStorage.setItem(TOUR_STORAGE_KEY, "1");
     } catch {
       // Non-fatal if storage is blocked.
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    let hasSeen = false;
+    try {
+      hasSeen = Boolean(typeof window !== "undefined" && localStorage.getItem(TOUR_STORAGE_KEY));
+    } catch {
+      hasSeen = false;
+    }
+    if (shouldAutoOpenTour(pathname, hasSeen)) {
+      setOpen(true);
+    }
+    const onOpen = () => setOpen(true);
+    window.addEventListener("payloop:open-tour", onOpen);
+    return () => window.removeEventListener("payloop:open-tour", onOpen);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        close();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, close]);
 
   if (!open) return null;
 

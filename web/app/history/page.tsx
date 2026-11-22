@@ -157,9 +157,13 @@ export default function HistoryPage() {
       )}
 
       {loading && mine.length === 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-3" role="status" aria-label="Loading invoices">
+          <span className="sr-only">Loading invoices...</span>
           {[0, 1, 2].map((i) => (
-            <div key={i} className="card h-24 animate-pulse bg-white/5" />
+            <div
+              key={i}
+              className="card h-24 animate-pulse motion-reduce:animate-none bg-white/5"
+            />
           ))}
         </div>
       ) : mine.length === 0 ? (

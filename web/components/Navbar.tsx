@@ -11,6 +11,7 @@ const links = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/create", label: "New invoice" },
   { href: "/history", label: "History" },
+  { href: "/statement", label: "Statement" },
   { href: "/withdraw", label: "Withdraw" },
   { href: "/activity", label: "Activity" },
   { href: "/help", label: "Help" },

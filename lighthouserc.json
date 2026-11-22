@@ -1,0 +1,29 @@
+{
+  "ci": {
+    "collect": {
+      "startServerCommand": "npm run start --prefix web",
+      "startServerReadyPattern": "ready on",
+      "startServerReadyTimeout": 30000,
+      "url": [
+        "http://localhost:3000/",
+        "http://localhost:3000/create",
+        "http://localhost:3000/help",
+        "http://localhost:3000/activity"
+      ],
+      "numberOfRuns": 1,
+      "settings": {
+        "preset": "desktop"
+      }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["error", { "minScore": 0.8 }],
+        "categories:accessibility": ["error", { "minScore": 0.9 }],
+        "categories:seo": ["error", { "minScore": 0.9 }]
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  }
+}

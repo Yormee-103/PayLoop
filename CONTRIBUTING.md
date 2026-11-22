@@ -53,6 +53,22 @@ npm run build
 CI (`.github/workflows/`) runs the same checks on every PR; both must be green
 for review.
 
+## Automated Lighthouse CI budgets
+
+Pull requests modifying `web/` trigger Lighthouse CI (`.github/workflows/lighthouse.yml`) against a production build to enforce quality thresholds across `/`, `/create`, `/help`, and `/activity`:
+
+- **Performance**: score budget $\ge$ 0.80
+- **Accessibility**: score budget $\ge$ 0.90
+- **SEO**: score budget $\ge$ 0.90
+
+Violations of these budgets will fail the CI check. To run the audits locally:
+
+```bash
+cd web
+npm run build
+npx @lhci/cli autorun --config=../lighthouserc.json
+```
+
 ## Review process
 
 - Maintainers review PRs by impact area: contract changes get a deliberate

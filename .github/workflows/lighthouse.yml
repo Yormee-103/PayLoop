@@ -1,0 +1,44 @@
+name: Lighthouse CI
+
+# Automated Lighthouse CI budgets for Next.js frontend (web/).
+# Verifies performance, accessibility, and SEO thresholds on pull requests.
+
+on:
+  pull_request:
+    paths:
+      - "web/**"
+      - "lighthouserc.json"
+      - ".github/workflows/lighthouse.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lighthouse:
+    name: Lighthouse Audit & Score Budgets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: web
+
+      - name: Build Next.js app
+        run: npm run build
+        working-directory: web
+
+      - name: Run Lighthouse CI
+        run: npx @lhci/cli@0.14.x autorun --config=lighthouserc.json

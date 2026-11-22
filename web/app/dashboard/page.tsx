@@ -6,7 +6,7 @@ import { useWallet } from "@/components/WalletProvider";
 import { InvoiceCard } from "@/components/InvoiceCard";
 import { Alert, EmptyState, Spinner } from "@/components/ui";
 import { getInvoiceHistory, getTokenBalance, type Invoice } from "@/lib/contract";
-import { formatAmount, humanizeDescription } from "@/lib/format";
+import { formatAmount, humanizeDescription, isOverdue } from "@/lib/format";
 import { config, isConfigured } from "@/lib/config";
 import { FaucetButton } from "@/components/FaucetButton";
 import { TrustlineButton } from "@/components/TrustlineButton";
@@ -72,9 +72,7 @@ export default function DashboardPage() {
     .reduce((acc, i) => acc + i.amount, 0n);
   const pending = invoices.filter((i) => i.status === "Pending");
   const nowMs = Date.now();
-  const overdue = pending.filter(
-    (i) => i.dueDate > 0n && i.dueDate * 1000n < BigInt(nowMs)
-  );
+  const overdue = invoices.filter((i) => isOverdue(i, nowMs));
 
   return (
     <div className="space-y-6">

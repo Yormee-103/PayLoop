@@ -6,7 +6,7 @@ import { useWallet } from "@/components/WalletProvider";
 import { Alert, Spinner, TxLink } from "@/components/ui";
 import { InvoicePreview } from "@/components/InvoiceDocument";
 import { createInvoice } from "@/lib/contract";
-import { toBaseUnits } from "@/lib/format";
+import { toBaseUnits, dueDateToUnix } from "@/lib/format";
 import { config, isConfigured } from "@/lib/config";
 import {
   BUILTIN_TEMPLATES,
@@ -83,9 +83,7 @@ export default function CreatePage() {
             token: config.tokenId,
             amount: toBaseUnits(amount),
             description: description.trim(),
-            dueDate: dueDate
-              ? BigInt(Math.floor(new Date(dueDate).getTime() / 1000))
-              : 0n,
+            dueDate: dueDateToUnix(dueDate),
             status: "Pending" as const,
             createdAt: 0n,
             paidAt: 0n,
@@ -122,9 +120,7 @@ export default function CreatePage() {
     setSubmitting(true);
     setError(null);
     try {
-      const dueUnix = dueDate
-        ? BigInt(Math.floor(new Date(dueDate).getTime() / 1000))
-        : 0n;
+      const dueUnix = dueDateToUnix(dueDate);
       const res = await createInvoice({
         freelancer: address,
         client,

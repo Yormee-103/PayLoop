@@ -35,13 +35,18 @@ export function shortAddress(addr: string, chars = 4): string {
   return `${addr.slice(0, chars)}…${addr.slice(-chars)}`;
 }
 
+export { dueDateToUnix, isOverdue } from "./date";
+
 export function formatDate(unixSeconds: bigint | number): string {
   const n = typeof unixSeconds === "bigint" ? Number(unixSeconds) : unixSeconds;
   if (!n) return "—";
+  // If the timestamp is legacy UTC midnight (divisible by 86400), format in UTC to avoid showing previous day in UTC-minus timezones
+  const isUtcMidnight = n % 86400 === 0;
   return new Date(n * 1000).toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
     day: "numeric",
+    ...(isUtcMidnight ? { timeZone: "UTC" } : {}),
   });
 }
 

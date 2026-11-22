@@ -23,7 +23,7 @@ export default function PayPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { address, connect, connecting } = useWallet();
+  const { address, connect, connecting, installed, error: walletError } = useWallet();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [balance, setBalance] = useState<bigint | null>(null);
   const [loading, setLoading] = useState(true);
@@ -141,6 +141,12 @@ export default function PayPage({
   const isPaid = invoice.status === "Paid";
   const insufficient =
     balance !== null && balance < invoice.amount && isClient && !isPaid;
+  const networkName =
+    config.network === "PUBLIC"
+      ? "Stellar Public Network"
+      : config.network === "TESTNET"
+      ? "Stellar Testnet"
+      : config.network || "Stellar Testnet";
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
@@ -196,25 +202,93 @@ export default function PayPage({
           </Alert>
         )}
 
-        {error && (
+        {(error || walletError) && (
           <Alert kind="error">
-            <span>{error}</span>{" "}
-            <button onClick={load} className="ml-2 underline">
-              Retry
-            </button>
+            <span>{error || walletError}</span>{" "}
+            {error && (
+              <button onClick={load} className="ml-2 underline">
+                Retry
+              </button>
+            )}
           </Alert>
         )}
 
         {!isPaid && (
           <>
             {!address ? (
-              <button
-                onClick={connect}
-                disabled={connecting}
-                className="btn-primary w-full"
-              >
-                {connecting ? "Connecting…" : "Connect wallet to pay"}
-              </button>
+              !installed ? (
+                <div className="space-y-4 rounded-xl border border-white/10 bg-ink-900/60 p-4">
+                  <div className="space-y-1">
+                    <h2 className="text-base font-semibold">
+                      Stellar wallet required to pay
+                    </h2>
+                    <p className="text-xs text-slate-400">
+                      Paying this invoice requires a Stellar wallet (such as Freighter) to sign and submit the payment on-chain.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 rounded-lg bg-white/5 p-3 text-xs">
+                    <p className="font-semibold text-slate-300">Quick 3-step setup:</p>
+                    <ol className="space-y-2 text-slate-400">
+                      <li className="flex items-start gap-2">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-500/20 text-xs font-bold text-brand-300">
+                          1
+                        </span>
+                        <span>
+                          <strong className="font-semibold text-inherit">Install Freighter browser extension</strong> (takes ~1 minute, free, no KYC).
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-500/20 text-xs font-bold text-brand-300">
+                          2
+                        </span>
+                        <span>
+                          <strong className="font-semibold text-inherit">Create or import your Stellar account</strong>.
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-500/20 text-xs font-bold text-brand-300">
+                          3
+                        </span>
+                        <span>
+                          <strong className="font-semibold text-inherit">Return to this page</strong> to pay with {config.tokenSymbol} on Stellar ({networkName}).
+                        </span>
+                      </li>
+                    </ol>
+                  </div>
+
+                  <div className="rounded-lg border border-brand-500/20 bg-brand-500/10 px-3 py-2 text-xs text-brand-200">
+                    ℹ️ This invoice runs on {networkName} / {config.network}.
+                  </div>
+
+                  <div className="space-y-2 pt-1">
+                    <a
+                      href="https://www.freighter.app/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-primary w-full text-center"
+                    >
+                      Install Freighter Wallet ↗
+                    </a>
+                    <button
+                      type="button"
+                      onClick={connect}
+                      disabled={connecting}
+                      className="btn-ghost w-full text-xs"
+                    >
+                      {connecting ? "Connecting…" : "Already installed? Try connecting"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={connect}
+                  disabled={connecting}
+                  className="btn-primary w-full"
+                >
+                  {connecting ? "Connecting…" : "Connect wallet to pay"}
+                </button>
+              )
             ) : !isClient ? (
               <Alert kind="info">
                 This invoice is addressed to {shortAddress(invoice.client)}.

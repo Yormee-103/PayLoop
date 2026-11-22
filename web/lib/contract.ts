@@ -141,6 +141,14 @@ export async function getAllInvoices(max = 250): Promise<Invoice[]> {
   return out;
 }
 
+export async function getContractVersion(): Promise<string> {
+  const raw = await simulateRead("version", []);
+  if (!raw) {
+    throw new Error("Contract did not return a version.");
+  }
+  return String(raw);
+}
+
 export async function getTokenBalance(address: string): Promise<bigint> {
   const srv = server();
   const token = new Contract(config.tokenId);

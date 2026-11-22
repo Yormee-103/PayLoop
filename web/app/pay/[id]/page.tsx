@@ -16,6 +16,7 @@ import {
 } from "@/lib/contract";
 import { formatAmount, formatDate, humanizeDescription, shortAddress } from "@/lib/format";
 import { config, isConfigured } from "@/lib/config";
+import { mapErrorMessage } from "@/lib/errors";
 
 export default function PayPage({
   params,
@@ -89,15 +90,10 @@ export default function PayPage({
       await load();
     } catch (e: any) {
       const raw = String(e?.message ?? "");
-      // Translate the most common on-chain failure into plain language.
-      if (raw.includes("trustline entry is missing")) {
+      if (raw.includes("trustline entry is missing") || raw.includes("Missing token trustline")) {
         setFreelancerReady(false);
-        setError(
-          `The freelancer hasn't enabled ${config.tokenSymbol} yet, so they can't receive this payment. Ask them to enable it, then try again.`
-        );
-      } else {
-        setError(raw || "Payment failed.");
       }
+      setError(mapErrorMessage(e));
     } finally {
       setPaying(false);
     }

@@ -17,6 +17,7 @@ import {
 } from "@stellar/stellar-sdk";
 import { config } from "./config";
 import { signXdr } from "./wallet";
+import { PayLoopError, mapErrorMessage } from "./errors";
 
 export type InvoiceStatus = "Pending" | "Paid";
 
@@ -204,10 +205,18 @@ async function invokeSigned(
     getResult = await srv.getTransaction(sent.hash);
   }
 
-  if (getResult.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
-    throw new Error(
-      `Transaction did not succeed (status: ${getResult.status}).`
+  if (getResult.status === rpc.Api.GetTransactionStatus.NOT_FOUND) {
+    throw new PayLoopError(
+      `Transaction confirmation timed out after 30 seconds. Transaction hash: ${sent.hash}. Check the explorer before retrying.`,
+      { txHash: sent.hash, isTimeout: true }
     );
+  }
+
+  if (getResult.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
+    const rawError = JSON.stringify(getResult);
+    throw new PayLoopError(mapErrorMessage(rawError, sent.hash), {
+      txHash: sent.hash,
+    });
   }
 
   const returnValue = getResult.returnValue

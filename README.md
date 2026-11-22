@@ -224,8 +224,8 @@ The four proof-critical shots:
 | **On-chain activity** (unique-wallet stats, proof of interactions) | **Create invoice** (templates + preview) |
 | ![Activity](docs/screenshots/activity.png) | ![Create invoice with templates](docs/screenshots/create.png) |
 
-The full index (landing, preview, history, feedback, tour, mobile, analytics,
-monitoring, light theme) is the **single canonical list** maintained in
+The full index (landing, dashboard, create, templates, create-success, pay,
+activity, help, feedback, mobile, analytics) is the **single canonical list** maintained in
 [docs/screenshots/README.md](docs/screenshots/README.md) — see also
 [docs/GROWTH.md](docs/GROWTH.md) for the full feedback → shipped trace.
 

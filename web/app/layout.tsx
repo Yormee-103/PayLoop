@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Navbar } from "@/components/Navbar";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { OnboardingTour } from "@/components/OnboardingTour";
+import { getNetworkDemoLabel } from "@/lib/network";
 
 export const metadata: Metadata = {
   title: "PayLoop — Get paid in crypto, cash out in Naira",
@@ -38,7 +39,8 @@ export default function RootLayout({
             <Navbar />
             <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
             <footer className="mx-auto max-w-5xl px-4 py-10 text-center text-xs text-slate-500">
-              PayLoop · Built on Stellar Soroban · Testnet demo
+              PayLoop · Built on Stellar Soroban
+              {getNetworkDemoLabel() ? ` · ${getNetworkDemoLabel()}` : ""}
             </footer>
             <FeedbackWidget />
             <OnboardingTour />

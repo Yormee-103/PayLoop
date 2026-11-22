@@ -6,6 +6,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Navbar } from "@/components/Navbar";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { OnboardingTour } from "@/components/OnboardingTour";
+import { MisconfigurationScreen } from "@/components/MisconfigurationScreen";
+import { validateConfig } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: "PayLoop — Get paid in crypto, cash out in Naira",
@@ -30,13 +32,22 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const configErrors = validateConfig();
+  const isMisconfigured = configErrors.length > 0;
+
   return (
     <html lang="en" className="dark">
       <body>
         <ThemeProvider>
           <WalletProvider>
             <Navbar />
-            <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+            <main className="mx-auto max-w-5xl px-4 py-8">
+              {isMisconfigured ? (
+                <MisconfigurationScreen errors={configErrors} />
+              ) : (
+                children
+              )}
+            </main>
             <footer className="mx-auto max-w-5xl px-4 py-10 text-center text-xs text-slate-500">
               PayLoop · Built on Stellar Soroban · Testnet demo
             </footer>

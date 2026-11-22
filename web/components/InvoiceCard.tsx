@@ -3,10 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Invoice } from "@/lib/contract";
-import { formatAmount, formatDate, humanizeDescription, shortAddress } from "@/lib/format";
+import { formatAmount, formatDate, getPaymentUrl, humanizeDescription, shortAddress } from "@/lib/format";
 import { config } from "@/lib/config";
 import { StatusBadge } from "./ui";
 import { InvoicePreview } from "./InvoiceDocument";
+import { PaymentQR } from "./PaymentQR";
 
 export function InvoiceCard({
   invoice,
@@ -17,12 +18,11 @@ export function InvoiceCard({
 }) {
   const [copied, setCopied] = useState(false);
   const [reminded, setReminded] = useState(false);
+  const [showQR, setShowQR] = useState(false);
   const [preview, setPreview] = useState(false);
 
   function link() {
-    return typeof window !== "undefined"
-      ? `${window.location.origin}/pay/${invoice.id}`
-      : `/pay/${invoice.id}`;
+    return getPaymentUrl(invoice.id);
   }
 
   async function copyLink() {
@@ -125,6 +125,20 @@ export function InvoiceCard({
           <button onClick={() => setPreview(true)} className="btn-ghost text-sm" title="Preview / save as PDF">
             PDF
           </button>
+          <button
+            onClick={() => setShowQR((visible) => !visible)}
+            className="btn-ghost text-sm"
+            title="Show payment QR code"
+          >
+            {showQR ? "Hide QR" : "QR"}
+          </button>
+        </div>
+      )}
+
+      {showQR && invoice.status === "Pending" && (
+        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-white/5 bg-black/20 p-3">
+          <PaymentQR url={link()} size={130} />
+          <p className="text-xs text-slate-400">Scan to pay invoice #{invoice.id}</p>
         </div>
       )}
 

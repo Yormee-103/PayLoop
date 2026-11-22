@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useWallet } from "@/components/WalletProvider";
 import { Alert, Spinner, TxLink } from "@/components/ui";
 import { InvoicePreview } from "@/components/InvoiceDocument";
+import { PaymentQR } from "@/components/PaymentQR";
 import { createInvoice } from "@/lib/contract";
-import { toBaseUnits } from "@/lib/format";
+import { getPaymentUrl, toBaseUnits } from "@/lib/format";
 import { config, isConfigured } from "@/lib/config";
 import {
   BUILTIN_TEMPLATES,
@@ -166,19 +167,27 @@ export default function CreatePage() {
 
       {result && (
         <Alert kind="success">
-          <p className="font-semibold">Invoice #{result.id} created.</p>
-          <p className="mt-1">
-            Share the payment link with your client:{" "}
-            <Link
-              href={`/pay/${result.id}`}
-              className="text-brand-200 underline"
-            >
-              /pay/{result.id}
-            </Link>
-          </p>
-          <p className="mt-1">
-            <TxLink hash={result.hash} />
-          </p>
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <p className="font-semibold">Invoice #{result.id} created.</p>
+              <p className="mt-1">
+                Share the payment link with your client:{" "}
+                <Link
+                  href={`/pay/${result.id}`}
+                  className="text-brand-200 underline"
+                >
+                  /pay/{result.id}
+                </Link>
+              </p>
+              <p className="mt-1">
+                <TxLink hash={result.hash} />
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-col items-center gap-1">
+              <PaymentQR url={getPaymentUrl(result.id)} size={96} />
+              <span className="text-[10px] text-slate-300">Scan to pay</span>
+            </div>
+          </div>
         </Alert>
       )}
 

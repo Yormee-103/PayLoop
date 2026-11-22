@@ -52,3 +52,10 @@ export function formatDate(unixSeconds: bigint | number): string {
 export function humanizeDescription(desc?: string | null): string {
   return desc ?? "";
 }
+
+export function getPaymentUrl(invoiceId: string): string {
+  const path = `/pay/${encodeURIComponent(invoiceId)}`;
+  return typeof window !== "undefined"
+    ? `${window.location.origin}${path}`
+    : path;
+}

@@ -1,0 +1,38 @@
+version: 2
+updates:
+  # npm dependencies for the Next.js frontend
+  - package-ecosystem: "npm"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      npm-dependencies:
+        patterns:
+          - "*"
+
+  # Cargo dependencies for the Soroban smart contract workspace
+  - package-ecosystem: "cargo"
+    directory: "/contracts"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    ignore:
+      # Deliberate pin: ed25519-dalek 3.0.0 breaks soroban-env-host's testutils PRNG bound.
+      # Held deliberately on the 2.x line (=2.2.0).
+      - dependency-name: "ed25519-dalek"
+    groups:
+      cargo-dependencies:
+        patterns:
+          - "*"
+
+  # GitHub Actions workflow actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      actions-dependencies:
+        patterns:
+          - "*"

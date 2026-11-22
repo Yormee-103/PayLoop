@@ -18,6 +18,13 @@ on:
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Vercel production deploy
@@ -44,11 +51,11 @@ jobs:
         if: steps.guard.outputs.enabled == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install Vercel CLI
         if: steps.guard.outputs.enabled == 'true'
-        run: npm i -g vercel@latest
+        run: npm i -g vercel@66.6.0
 
       - name: Pull Vercel environment
         if: steps.guard.outputs.enabled == 'true'

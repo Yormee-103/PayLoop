@@ -1,0 +1,5 @@
+Contact: https://github.com/Yormee-103/PayLoop/security/advisories/new
+Policy: https://github.com/Yormee-103/PayLoop/blob/main/SECURITY.md
+Preferred-Languages: en
+Canonical: https://pay-loop-neon.vercel.app/.well-known/security.txt
+Expires: 2027-12-31T23:59:59.000Z

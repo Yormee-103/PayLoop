@@ -123,6 +123,36 @@ export function InvoicePreview({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  // Set document.title to a meaningful filename before window.print() so the
+  // browser's "Save as PDF" dialog suggests PayLoop-Invoice-<id> or
+  // PayLoop-Receipt-<id>, and restore the original title on cleanup.
+  useEffect(() => {
+    if (!open || !invoice || typeof document === "undefined") return;
+    const previousTitle = document.title;
+    const targetTitle =
+      invoice.status === "Paid"
+        ? `PayLoop-Receipt-${invoice.id}`
+        : `PayLoop-Invoice-${invoice.id}`;
+
+    document.title = targetTitle;
+
+    const onBeforePrint = () => {
+      document.title = targetTitle;
+    };
+    const onAfterPrint = () => {
+      document.title = targetTitle;
+    };
+
+    window.addEventListener("beforeprint", onBeforePrint);
+    window.addEventListener("afterprint", onAfterPrint);
+
+    return () => {
+      document.title = previousTitle;
+      window.removeEventListener("beforeprint", onBeforePrint);
+      window.removeEventListener("afterprint", onAfterPrint);
+    };
+  }, [open, invoice]);
+
   if (!open || !invoice) return null;
 
   return (

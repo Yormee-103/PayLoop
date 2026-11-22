@@ -80,3 +80,5 @@ Good first issues are labeled `good first issue`. Another low-risk entry point
 is improving docs or tests for the contract
 (`contracts/invoice/README.md` documents the lifecycle, auth matrix and error
 codes).
+
+For offline and fast local development against a standalone Soroban environment, see the [Local Stellar Quickstart Guide](docs/LOCAL-NETWORK.md).

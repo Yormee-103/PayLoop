@@ -3,6 +3,8 @@
 This walks through building the PayLoop invoice contract, issuing a **test USDC**
 token, deploying, and initializing. Commands assume the `stellar` CLI (v27+).
 
+> For running and deploying to an offline, standalone local network via Docker, see [docs/LOCAL-NETWORK.md](../docs/LOCAL-NETWORK.md).
+
 > The resulting addresses go into `web/.env.local` (see `web/.env.example`) and
 > into the root `README.md` deployment table.
 

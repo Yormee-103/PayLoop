@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@/components/WalletProvider";
 import { InvoiceCard } from "@/components/InvoiceCard";
-import { Alert, EmptyState, Spinner } from "@/components/ui";
+import { Alert, EmptyState, isOverdue, Spinner } from "@/components/ui";
 import { getInvoiceHistory, getTokenBalance, type Invoice } from "@/lib/contract";
 import { formatAmount, humanizeDescription } from "@/lib/format";
 import { config, isConfigured } from "@/lib/config";
@@ -71,10 +71,7 @@ export default function DashboardPage() {
     .filter((i) => i.status === "Pending")
     .reduce((acc, i) => acc + i.amount, 0n);
   const pending = invoices.filter((i) => i.status === "Pending");
-  const nowMs = Date.now();
-  const overdue = pending.filter(
-    (i) => i.dueDate > 0n && i.dueDate * 1000n < BigInt(nowMs)
-  );
+  const overdue = pending.filter(isOverdue);
 
   return (
     <div className="space-y-6">

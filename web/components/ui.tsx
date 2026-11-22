@@ -18,6 +18,22 @@ export function StatusBadge({ status }: { status: InvoiceStatus }) {
   );
 }
 
+export function isOverdue(invoice: { status: InvoiceStatus; dueDate: bigint }): boolean {
+  return (
+    invoice.status === "Pending" &&
+    invoice.dueDate > 0n &&
+    invoice.dueDate * 1000n < BigInt(Date.now())
+  );
+}
+
+export function OverdueBadge({ className = "" }: { className?: string }) {
+  return (
+    <span className={`badge bg-red-500/15 text-red-300 ${className}`}>
+      Overdue
+    </span>
+  );
+}
+
 export function Spinner({ className = "" }: { className?: string }) {
   return (
     <span

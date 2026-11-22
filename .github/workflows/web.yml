@@ -38,6 +38,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Dependency audit
+        run: npm audit --omit=dev || true
+        continue-on-error: true
+
       - name: Lint
         run: npm run lint
 

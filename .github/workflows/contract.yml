@@ -48,6 +48,10 @@ jobs:
       - name: Clippy
         run: cargo clippy --all-targets
 
+      - name: Security audit
+        run: which cargo-audit >/dev/null 2>&1 || cargo install cargo-audit --locked || true; cargo audit || true
+        continue-on-error: true
+
       - name: Test
         run: cargo test
 

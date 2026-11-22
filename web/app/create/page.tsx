@@ -240,6 +240,12 @@ export default function CreatePage() {
                   placeholder="Save current as template"
                   value={templateName}
                   onChange={(e) => setTemplateName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      saveTemplate();
+                    }
+                  }}
                   maxLength={40}
                   aria-label="Template name"
                 />

@@ -293,6 +293,7 @@ export default function PayPage({
         open={receiptOpen}
         onClose={() => setReceiptOpen(false)}
         confirmLabel=""
+        txHash={paidHash || undefined}
       />
     </div>
   );

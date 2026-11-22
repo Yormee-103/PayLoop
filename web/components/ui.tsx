@@ -18,12 +18,21 @@ export function StatusBadge({ status }: { status: InvoiceStatus }) {
   );
 }
 
-export function Spinner({ className = "" }: { className?: string }) {
+export function Spinner({
+  className = "",
+  label = "Loading",
+}: {
+  className?: string;
+  label?: string;
+}) {
   return (
-    <span
-      className={`inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white ${className}`}
-      aria-hidden
-    />
+    <span role="status" className="inline-flex items-center">
+      <span
+        className={`inline-block h-4 w-4 animate-spin motion-reduce:animate-none rounded-full border-2 border-white/30 border-t-white ${className}`}
+        aria-hidden="true"
+      />
+      <span className="sr-only">{label}</span>
+    </span>
   );
 }
 

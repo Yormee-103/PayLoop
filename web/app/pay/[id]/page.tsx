@@ -113,8 +113,8 @@ export default function PayPage({
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-lg">
-        <div className="card h-64 animate-pulse bg-white/5" />
+      <div className="mx-auto max-w-lg" role="status" aria-label="Loading invoice">
+        <div className="card h-64 animate-pulse motion-reduce:animate-none bg-white/5" />
         <p className="mt-3 text-center text-xs text-slate-500">
           Loading invoice from chain…
         </p>

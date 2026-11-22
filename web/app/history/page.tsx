@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@/components/WalletProvider";
-import { Alert, EmptyState, Spinner, StatusBadge } from "@/components/ui";
+import { Alert, EmptyState, isOverdue, OverdueBadge, Spinner, StatusBadge } from "@/components/ui";
 import { InvoicePreview } from "@/components/InvoiceDocument";
 import { getAllInvoices, type Invoice } from "@/lib/contract";
 import { formatAmount, formatDate, humanizeDescription, shortAddress } from "@/lib/format";
@@ -205,6 +205,7 @@ export default function HistoryPage() {
                       #{inv.id}
                     </span>
                     <StatusBadge status={inv.status} />
+                    {isOverdue(inv) && <OverdueBadge />}
                   </div>
                   <p className="truncate text-sm font-medium">
                     {humanizeDescription(inv.description) || "—"}

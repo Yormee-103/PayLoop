@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { Invoice } from "@/lib/contract";
 import { formatAmount, formatDate, humanizeDescription, shortAddress } from "@/lib/format";
 import { config } from "@/lib/config";
-import { StatusBadge } from "./ui";
+import { isOverdue, OverdueBadge, StatusBadge } from "./ui";
 import { InvoicePreview } from "./InvoiceDocument";
 
 export function InvoiceCard({
@@ -49,8 +49,7 @@ export function InvoiceCard({
     }
   }
 
-  const overdue =
-    invoice.status === "Pending" && invoice.dueDate > 0n && invoice.dueDate * 1000n < BigInt(Date.now());
+  const overdue = isOverdue(invoice);
 
   return (
     <div className="card space-y-3">
@@ -58,11 +57,7 @@ export function InvoiceCard({
         <div>
           <p className="text-sm text-slate-400">
             Invoice #{invoice.id}
-            {overdue && (
-              <span className="badge ml-2 bg-red-500/15 text-red-300">
-                Overdue
-              </span>
-            )}
+            {overdue && <OverdueBadge className="ml-2" />}
           </p>
           <p className="text-2xl font-bold">
             {formatAmount(invoice.amount)}{" "}

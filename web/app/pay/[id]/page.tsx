@@ -3,7 +3,7 @@
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@/components/WalletProvider";
-import { Alert, Spinner, StatusBadge, TxLink } from "@/components/ui";
+import { Alert, isOverdue, OverdueBadge, Spinner, StatusBadge, TxLink } from "@/components/ui";
 import { InvoicePreview } from "@/components/InvoiceDocument";
 import { TrustlineButton } from "@/components/TrustlineButton";
 import { FaucetButton } from "@/components/FaucetButton";
@@ -154,7 +154,10 @@ export default function PayPage({
       <div className="card space-y-5">
         <div className="flex items-center justify-between">
           <span className="text-sm text-slate-400">Amount due</span>
-          <StatusBadge status={invoice.status} />
+          <div className="flex items-center gap-2">
+            {isOverdue(invoice) && <OverdueBadge />}
+            <StatusBadge status={invoice.status} />
+          </div>
         </div>
         <div className="text-center">
           <div className="text-4xl font-bold">

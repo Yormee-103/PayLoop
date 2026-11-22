@@ -7,6 +7,7 @@ import { Alert, Spinner, TxLink } from "@/components/ui";
 import { InvoicePreview } from "@/components/InvoiceDocument";
 import { createInvoice } from "@/lib/contract";
 import { toBaseUnits } from "@/lib/format";
+import { mapErrorMessage } from "@/lib/errors";
 import { config, isConfigured } from "@/lib/config";
 import {
   BUILTIN_TEMPLATES,
@@ -138,7 +139,7 @@ export default function CreatePage() {
       setDescription("");
       setDueDate("");
     } catch (e: any) {
-      setError(e?.message ?? "Failed to create invoice.");
+      setError(mapErrorMessage(e));
     } finally {
       setSubmitting(false);
     }

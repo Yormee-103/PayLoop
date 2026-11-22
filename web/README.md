@@ -51,6 +51,7 @@ Testnet defaults for the public vars are baked into `.env.example`.
 - `/activity` — public on-chain feed of every invoice + usage stats
 - `/api/faucet` — server route that mints test USDC (holds the issuer key)
 - `/api/feedback` — collects user feedback, forwards to an optional webhook
+- `/api/health` — uptime monitoring endpoint that verifies Soroban RPC and contract reachability
 
 ## The faucet
 
@@ -65,6 +66,67 @@ amount against your balance, shows the NGN conversion, and returns a reference.
 **No real bank transfer happens and no on-chain funds move.** See
 [`../docs/ANCHOR.md`](../docs/ANCHOR.md) for how this would connect to a real
 anchor.
+
+## Health & uptime monitoring
+
+The `/api/health` route provides a lightweight health check designed for external
+uptime monitors (e.g., Better Uptime, Datadog, Pingdom, UptimeRobot, or Kubernetes
+probes).
+
+### Endpoint specifications
+
+- **Method**: `GET`
+- **Path**: `/api/health`
+- **Response Headers**: `Cache-Control: no-store, max-age=0`
+
+### Checks performed
+
+1. **Soroban RPC Check**: Queries the Soroban RPC endpoint for the latest ledger sequence (`rpc.getLatestLedger()`).
+2. **Contract Simulation Check**: Simulates invoking the contract's `version()` entrypoint (`version() -> Symbol("v1")`).
+
+### Response format
+
+#### Healthy (HTTP 200)
+
+Returned when both Soroban RPC and the contract are reachable and functional:
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-11-22T02:58:00.000Z",
+  "ledger": 5858503,
+  "contract": {
+    "status": "reachable",
+    "version": "v1"
+  }
+}
+```
+
+#### Degraded (HTTP 503)
+
+Returned when Soroban RPC is unreachable or contract simulation fails:
+
+```json
+{
+  "status": "degraded",
+  "timestamp": "2026-11-22T02:58:00.000Z",
+  "error": "Contract simulation failed: HostError: Error(Value, InvalidInput)"
+}
+```
+
+> **Security Note**: All error messages are sanitized before being returned.
+> Server secrets (such as `USDC_ISSUER_SECRET`, `SENTRY_AUTH_TOKEN`, and `FEEDBACK_WEBHOOK_URL`),
+> Stellar private keys (`S...`), and authorization tokens are strictly redacted
+> and never leaked in the response.
+
+### Uptime monitoring integration guidelines
+
+When configuring an external uptime monitor:
+- **Monitor type**: HTTP(S) check
+- **Endpoint**: `https://<your-domain>/api/health`
+- **Check interval**: 30 to 60 seconds
+- **Expected HTTP status**: `200`
+- **Keyword / Body Assertion** (optional): Match `"status":"ok"` or `"status": "ok"`
 
 ## Deploy
 

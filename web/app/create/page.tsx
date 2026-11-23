@@ -7,6 +7,7 @@ import { Alert, Spinner, TxLink } from "@/components/ui";
 import { InvoicePreview } from "@/components/InvoiceDocument";
 import { createInvoice, getAllowedTokenIds } from "@/lib/contract";
 import { toBaseUnits } from "@/lib/format";
+import { clientAddressError } from "@/lib/stellar-address";
 import { config, getTokenConfig, isConfigured, tokens } from "@/lib/config";
 import { useTokenMeta } from "@/lib/use-token-meta";
 import {
@@ -59,9 +60,8 @@ export default function CreatePage() {
   }, [tokenId]);
 
   function validate(): string | null {
-    if (!client.startsWith("G") || client.length !== 56) {
-      return "Enter a valid client Stellar address (starts with G, 56 chars).";
-    }
+    const clientError = clientAddressError(client);
+    if (clientError) return clientError;
     if (client === address) {
       return "The client can't be your own address.";
     }
@@ -316,6 +316,11 @@ export default function CreatePage() {
               onChange={(e) => setClient(e.target.value.trim())}
               autoComplete="off"
             />
+            {client.length > 0 && !clientAddressError(client) && (
+              <p className="mt-1 text-sm text-emerald-300" role="status">
+                Client address is valid.
+              </p>
+            )}
           </div>
 
           {availableTokens.length > 1 && (

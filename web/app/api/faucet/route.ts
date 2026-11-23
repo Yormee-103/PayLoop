@@ -3,8 +3,10 @@ import {
   Address,
   BASE_FEE,
   Contract,
+  Horizon,
   Keypair,
   nativeToScVal,
+  StrKey,
   TransactionBuilder,
   rpc,
 } from "@stellar/stellar-sdk";
@@ -37,8 +39,12 @@ export async function POST(req: Request) {
   const tokenId = process.env.NEXT_PUBLIC_TOKEN_ID;
   const rpcUrl =
     process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org";
+  const horizonUrl =
+    process.env.NEXT_PUBLIC_HORIZON_URL ??
+    "https://horizon-testnet.stellar.org";
   const passphrase =
     process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE ?? TESTNET_PASSPHRASE;
+  const tokenSymbol = process.env.NEXT_PUBLIC_TOKEN_SYMBOL ?? "USDC";
 
   if (!issuerSecret || !tokenId) {
     return NextResponse.json(
@@ -57,12 +63,20 @@ export async function POST(req: Request) {
   let address: string;
   try {
     const body = await req.json();
-    address = body.address;
-    // Throws if the address is malformed.
-    Address.fromString(address);
+    address = body?.address;
+    if (
+      !address ||
+      typeof address !== "string" ||
+      !StrKey.isValidEd25519PublicKey(address)
+    ) {
+      return NextResponse.json(
+        { error: "A valid Stellar account address (G...) is required." },
+        { status: 400 },
+      );
+    }
   } catch {
     return NextResponse.json(
-      { error: "A valid wallet address is required." },
+      { error: "A valid Stellar account address (G...) is required." },
       { status: 400 },
     );
   }
@@ -87,6 +101,38 @@ export async function POST(req: Request) {
 
   try {
     const issuer = Keypair.fromSecret(issuerSecret);
+    const tokenIssuer =
+      process.env.NEXT_PUBLIC_TOKEN_ISSUER ?? issuer.publicKey();
+
+    // Check trustline before building and submitting the transaction
+    const horizon = new Horizon.Server(horizonUrl, {
+      allowHttp: horizonUrl.startsWith("http://"),
+    });
+
+    let hasTrustline = false;
+    if (address === issuer.publicKey() || address === tokenIssuer) {
+      hasTrustline = true;
+    } else {
+      try {
+        const account = await horizon.loadAccount(address);
+        hasTrustline = account.balances.some(
+          (b: any) =>
+            b.asset_code === tokenSymbol &&
+            (b.asset_issuer === tokenIssuer ||
+              b.asset_issuer === issuer.publicKey()),
+        );
+      } catch {
+        hasTrustline = false;
+      }
+    }
+
+    if (!hasTrustline) {
+      return NextResponse.json(
+        { error: "Recipient account does not have a USDC trustline." },
+        { status: 409 },
+      );
+    }
+
     const server = new rpc.Server(rpcUrl, {
       allowHttp: rpcUrl.startsWith("http://"),
     });
@@ -107,7 +153,23 @@ export async function POST(req: Request) {
       .setTimeout(60)
       .build();
 
-    const prepared = await server.prepareTransaction(tx);
+    let prepared;
+    try {
+      prepared = await server.prepareTransaction(tx);
+    } catch (prepErr: any) {
+      const msg = String(prepErr?.message ?? "");
+      if (
+        msg.includes("Error(Contract, #13)") ||
+        msg.toLowerCase().includes("trustline")
+      ) {
+        return NextResponse.json(
+          { error: "Recipient account does not have a USDC trustline." },
+          { status: 409 },
+        );
+      }
+      throw prepErr;
+    }
+
     prepared.sign(issuer);
 
     const sent = await server.sendTransaction(prepared);
@@ -115,6 +177,20 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "Mint transaction was rejected." },
         { status: 502 },
+      );
+    }
+
+    if (sent.status === "TRY_AGAIN_LATER") {
+      return NextResponse.json(
+        { error: "Network is busy. Please try again shortly." },
+        { status: 503 },
+      );
+    }
+
+    if (sent.status === "DUPLICATE") {
+      return NextResponse.json(
+        { error: "A mint transaction for this request is already pending." },
+        { status: 409 },
       );
     }
 
@@ -139,8 +215,12 @@ export async function POST(req: Request) {
     await rateLimiter.recordMint(ip, address, MINT_AMOUNT);
     return NextResponse.json({ ok: true, hash: sent.hash });
   } catch (e: any) {
+    console.error("Faucet error:", e);
     return NextResponse.json(
-      { error: e?.message ?? "Faucet failed unexpectedly." },
+      {
+        error:
+          "Faucet service encountered an unexpected error. Please try again later.",
+      },
       { status: 500 },
     );
   }

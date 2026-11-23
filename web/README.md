@@ -28,17 +28,27 @@ You'll need the [Freighter](https://freighter.app) browser extension set to
 
 ## Environment variables
 
-| Variable | Scope | Purpose |
-| --- | --- | --- |
-| `NEXT_PUBLIC_CONTRACT_ID` | public | Invoice contract address |
-| `NEXT_PUBLIC_TOKEN_ID` | public | Test USDC Stellar Asset Contract |
-| `NEXT_PUBLIC_TOKEN_DECIMALS` | public | Default token decimals (7); actual values are read from each token contract |
-| `NEXT_PUBLIC_TOKENS` | public | Optional JSON array of extra allowlisted tokens: `[{"id":"C…","issuer":"G…","symbol":"USDY","decimals":6}]`. The default token is always included. Its `symbol`/`decimals` are public fallbacks; the current values come from the token contract. |
-| `NEXT_PUBLIC_RPC_URL` | public | Soroban RPC endpoint |
-| `NEXT_PUBLIC_NETWORK_PASSPHRASE` | public | Network passphrase |
-| `USDC_ISSUER_SECRET` | **server only** | Issuer secret key for the test-USDC faucet. Never prefix with `NEXT_PUBLIC`. |
-| `FEEDBACK_WEBHOOK_URL` | **server only** | Optional. Webhook (Slack/Discord/Zapier) that `/api/feedback` forwards submissions to. |
-| `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` | mixed | Optional monitoring; build works without them |
+| Variable | Scope | Default | Purpose |
+| --- | --- | --- | --- |
+| `NEXT_PUBLIC_NETWORK` | public | `TESTNET` | Stellar network identifier (`TESTNET` or `PUBLIC`) |
+| `NEXT_PUBLIC_NETWORK_PASSPHRASE` | public | testnet passphrase | Network passphrase passed to the SDK |
+| `NEXT_PUBLIC_RPC_URL` | public | `https://soroban-testnet.stellar.org` | Soroban RPC endpoint |
+| `NEXT_PUBLIC_HORIZON_URL` | public | `https://horizon-testnet.stellar.org` | Horizon REST endpoint; used for trustline ops and account data |
+| `NEXT_PUBLIC_CONTRACT_ID` | public | live testnet contract | Invoice contract address |
+| `NEXT_PUBLIC_TOKEN_ID` | public | live testnet SAC | Test USDC Stellar Asset Contract address |
+| `NEXT_PUBLIC_TOKEN_ISSUER` | public | live testnet issuer | G-address of the USDC issuer; needed to build the `changeTrust` op in-app |
+| `NEXT_PUBLIC_TOKEN_DECIMALS` | public | `7` | Token decimal places; actual value is read from the token contract at runtime |
+| `NEXT_PUBLIC_TOKEN_SYMBOL` | public | `USDC` | Display symbol fallback; actual value is read from the token contract at runtime |
+| `NEXT_PUBLIC_TOKENS` | public | _(none)_ | Optional JSON array of extra allowlisted tokens: `[{"id":"C…","issuer":"G…","symbol":"USDY","decimals":6}]`. The default token is always included. |
+| `NEXT_PUBLIC_SITE_URL` | public | auto-detected | Canonical origin for Open Graph metadata. Falls back to `VERCEL_URL` in preview deploys, then `http://localhost:3000`. |
+| `USDC_ISSUER_SECRET` | **server only** | _(none)_ | Secret key (`S…`) of the test-USDC issuer, used by `/api/faucet` to mint test USDC. Never prefix with `NEXT_PUBLIC`. |
+| `RATE_LIMITER_IP_LIMIT_PER_HOUR` | **server only** | `5` | Max faucet mints per IP per hour |
+| `RATE_LIMITER_GLOBAL_DAILY_CAP` | **server only** | `100000000000` | Max total tokens minted per day (base units; default = 10 000 USDC at 7 decimals) |
+| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | **server only** | _(none)_ | Optional Upstash Redis backend for global rate limiting across instances |
+| `KV_REST_API_URL`, `KV_REST_API_TOKEN` | **server only** | _(none)_ | Optional Vercel KV backend for global rate limiting (alternative to Upstash) |
+| `FEEDBACK_WEBHOOK_URL` | **server only** | _(none)_ | Optional webhook (Slack/Discord/Zapier) that `/api/feedback` forwards submissions to |
+| `NEXT_PUBLIC_SENTRY_DSN` | public | _(none)_ | Optional Sentry DSN for client and edge error reporting |
+| `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` | **server only** | _(none)_ | Optional Sentry source-map upload credentials; build works without them |
 
 Testnet defaults for the public vars are baked into `.env.example`.
 

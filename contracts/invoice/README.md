@@ -52,9 +52,8 @@ no funds movement** — do not build against it.
 Known scaling limitation: `get_invoice_history` loads every invoice struct for
 one freelancer in a single call. Past a few hundred invoices per freelancer a
 deployed instance will hit Soroban read-footprint limits; a platform building
-on this contract should add a paginated accessor (e.g. `invoice_count(address)`
-+ `get_invoice_range(address, start, len)`) rather than reading everything at
-once.
+on this contract should page through `get_invoice_range(freelancer, start,
+len)` instead of reading everything at once.
 
 ## Entrypoints
 
@@ -67,7 +66,9 @@ once.
 | `fund_invoice` | `invoice.client` | `invoice_id` | `()` | `InvoicePaid` |
 | `release_funds` | — (inert in v1) | `invoice_id` | `()` | — |
 | `get_invoice` | read-only | `invoice_id` | `Invoice` | — |
+| `invoice_count` | read-only | — | `u64` invoice count (0 before the first invoice) | — |
 | `get_invoice_history` | read-only | `freelancer` | `Vec<Invoice>` | — |
+| `get_invoice_range` | read-only | `freelancer`, `start` (u32), `len` (u32) | `Vec<Invoice>` | — |
 | `default_token_address` | read-only | — | token `Address` | — |
 | `get_allowed_tokens` | read-only | — | `Vec<Address>` | — |
 | `version` | read-only | — | `"v1"` symbol | — |
@@ -89,6 +90,10 @@ Semantics worth knowing:
 - `due_date` is informational (rendered in UIs, used for overdue badges); the
   contract does not enforce it. There is no expiry: an overdue invoice can
   still be paid so late payments are not locked out.
+- `invoice_count` returns the number of invoices ever created, **not** the next
+  invoice id: it is `0` before the first invoice and `N` after `N` creations.
+  Ids start at 1, so a client looping `1..=invoice_count()` visits exactly the
+  ids that exist.
 - Double funding is impossible: a second `fund_invoice` on a `Paid` invoice
   returns `AlreadyPaid`.
 - No allowlist for clients: any address can fund any `Pending` invoice by
@@ -127,16 +132,19 @@ participant's activity, instead of scanning invoices.
 
 ```bash
 cd contracts/invoice
-cargo test                              # 18 unit tests (auth + edge cases)
+cargo test --locked                     # 27 unit tests (auth + edge cases)
 cargo fmt --all --check
-cargo clippy --all-targets
-cargo build --target wasm32v1-none --release
+cargo clippy --all-targets --locked -- -D warnings
+cargo build --locked --target wasm32v1-none --release
 # -> ../target/wasm32v1-none/release/payloop_invoice.wasm
 ```
 
 Full deploy walkthrough (keys, SAC, initialize, faucet): [../DEPLOYMENT.md](../DEPLOYMENT.md).
 The contract CI (`.github/workflows/contract.yml`) runs all four steps above and
 uploads the release WASM as an artifact on every push touching `contracts/`.
+It builds and tests with `--locked`, treats clippy warnings as errors, and
+reports the optimized wasm size in bytes in the job summary. The wasm size is
+budgeted at 131072 bytes (128 KiB); the job fails above that budget.
 
 > Note on the local dev dependency pin: `Cargo.toml` pins
 > `ed25519-dalek = "=2.2.0"` because `soroban-env-host`'s testutils PRNG breaks

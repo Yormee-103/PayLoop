@@ -23,7 +23,7 @@ export default function ActivityPage() {
   const scan = useInvoiceScan();
   const invoices = useMemo(
     () => [...scan.invoices].reverse(), // newest first
-    [scan.invoices]
+    [scan.invoices],
   );
   const { loading, error, reachedCap, scannedThrough } = scan;
   const load = scan.retry;
@@ -58,7 +58,7 @@ export default function ActivityPage() {
             ? new Date(Number(i.createdAt) * 1000).toISOString()
             : "",
           i.paidAt > 0n ? new Date(Number(i.paidAt) * 1000).toISOString() : "",
-        ].join(",")
+        ].join(","),
       );
     const blob = new Blob([[header.join(","), ...rows].join("\n")], {
       type: "text/csv",
@@ -74,9 +74,7 @@ export default function ActivityPage() {
   }
 
   if (!isConfigured()) {
-    return (
-      <Alert kind="info">The contract isn&apos;t configured yet.</Alert>
-    );
+    return <Alert kind="info">The contract isn&apos;t configured yet.</Alert>;
   }
 
   const paid = invoices.filter((i) => i.status === "Paid");
@@ -88,7 +86,7 @@ export default function ActivityPage() {
   });
   const paidByToken = new Map<string, bigint>();
   paid.forEach((i) =>
-    paidByToken.set(i.token, (paidByToken.get(i.token) ?? 0n) + i.amount)
+    paidByToken.set(i.token, (paidByToken.get(i.token) ?? 0n) + i.amount),
   );
   const { granularity, buckets } = bucketSettledVolume(paid);
 
@@ -170,7 +168,10 @@ export default function ActivityPage() {
       {loading && invoices.length === 0 ? (
         <div className="space-y-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="card h-20 animate-pulse bg-white/5" />
+            <div
+              key={i}
+              className="card h-20 motion-reduce:animate-none animate-pulse bg-white/5"
+            />
           ))}
         </div>
       ) : invoices.length === 0 ? (
@@ -318,7 +319,7 @@ function bucketSettledVolume(paidInvoices: Invoice[]): {
   for (const inv of withDates) {
     const d = new Date(Number(inv.paidAt) * 1000);
     const start = new Date(
-      Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+      Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
     );
     if (granularity === "week") {
       const dayOfWeek = (start.getUTCDay() + 6) % 7; // Monday = 0
@@ -346,13 +347,7 @@ function bucketSettledVolume(paidInvoices: Invoice[]): {
   return { granularity, buckets };
 }
 
-function StatusSplitBar({
-  paid,
-  pending,
-}: {
-  paid: number;
-  pending: number;
-}) {
+function StatusSplitBar({ paid, pending }: { paid: number; pending: number }) {
   const total = paid + pending;
   if (total === 0) return null;
   const paidPct = (paid / total) * 100;
@@ -378,8 +373,7 @@ function StatusSplitBar({
       </div>
       <div className="flex gap-4 text-xs text-slate-400">
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-emerald-400" /> Paid (
-          {paid})
+          <span className="h-2 w-2 rounded-full bg-emerald-400" /> Paid ({paid})
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-amber-400" /> Pending (
@@ -431,7 +425,7 @@ function SettledVolumeChart({
               className="flex h-full flex-1 flex-col items-center justify-end gap-1"
               title={`${b.label}: ${formatAmount(
                 b.amount,
-                getTokenConfig(b.tokenId).decimals
+                getTokenConfig(b.tokenId).decimals,
               )} ${symbol}`}
             >
               <div

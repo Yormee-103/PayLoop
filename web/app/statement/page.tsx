@@ -31,7 +31,9 @@ export default function StatementPage() {
 
   const [generatedOn, setGeneratedOn] = useState("");
   useEffect(() => {
-    setGeneratedOn(new Date().toLocaleDateString(undefined, { dateStyle: "long" }));
+    setGeneratedOn(
+      new Date().toLocaleDateString(undefined, { dateStyle: "long" }),
+    );
   }, []);
 
   function print() {
@@ -56,8 +58,8 @@ export default function StatementPage() {
         <div>
           <h1 className="text-2xl font-bold">Income statement</h1>
           <p className="mt-1 text-sm text-slate-400">
-            A printable record of the invoices you were paid for, to share with a bank,
-            landlord or visa office.
+            A printable record of the invoices you were paid for, to share with
+            a bank, landlord or visa office.
           </p>
         </div>
         <ConnectPrompt message="Connect your wallet to build your income statement." />
@@ -74,7 +76,8 @@ export default function StatementPage() {
         <div>
           <h1 className="text-2xl font-bold">Income statement</h1>
           <p className="mt-1 text-sm text-slate-400">
-            Paid invoices where you were the freelancer, for the dates you choose.
+            Paid invoices where you were the freelancer, for the dates you
+            choose.
           </p>
         </div>
         <Link href="/history" className="btn-ghost text-xs">
@@ -109,10 +112,18 @@ export default function StatementPage() {
             onChange={(e) => setTo(e.target.value)}
           />
         </div>
-        <button onClick={scan.retry} disabled={scan.loading} className="btn-ghost text-xs">
+        <button
+          onClick={scan.retry}
+          disabled={scan.loading}
+          className="btn-ghost text-xs"
+        >
           {scan.loading ? <Spinner /> : "Refresh"}
         </button>
-        <button onClick={print} disabled={!canPrint} className="btn-primary ml-auto text-sm">
+        <button
+          onClick={print}
+          disabled={!canPrint}
+          className="btn-primary ml-auto text-sm"
+        >
           Print / Save as PDF
         </button>
       </div>
@@ -129,21 +140,25 @@ export default function StatementPage() {
       />
 
       {scan.loading && scan.invoices.length === 0 ? (
-        <div className="card h-48 animate-pulse bg-white/5" />
+        <div className="card h-48 motion-reduce:animate-none animate-pulse bg-white/5" />
       ) : statement && statement.rows.length === 0 ? (
         <EmptyState
           title="No paid invoices in this range"
           subtitle="Pick a wider range, or wait until a client has paid an invoice."
         />
       ) : statement ? (
-        <section className="print-area invoice-print card space-y-6" aria-label="Income statement">
+        <section
+          className="print-area invoice-print card space-y-6"
+          aria-label="Income statement"
+        >
           <header className="space-y-1">
             <h2 className="text-xl font-bold">PayLoop income statement</h2>
             <p className="text-sm text-slate-400">
               {from} to {to} · Generated {generatedOn || "today"}
             </p>
             <p className="text-sm">
-              Wallet: <span className="break-all font-mono text-xs">{address}</span>
+              Wallet:{" "}
+              <span className="break-all font-mono text-xs">{address}</span>
             </p>
           </header>
 
@@ -157,7 +172,8 @@ export default function StatementPage() {
               </p>
             ))}
             <p className="mt-1 text-xs text-slate-400">
-              {statement.rows.length} paid invoice{statement.rows.length === 1 ? "" : "s"}
+              {statement.rows.length} paid invoice
+              {statement.rows.length === 1 ? "" : "s"}
             </p>
           </div>
 
@@ -174,8 +190,13 @@ export default function StatementPage() {
               </thead>
               <tbody>
                 {statement.rows.map((row) => (
-                  <tr key={row.id} className="border-b border-white/5 align-top">
-                    <td className="py-2 pr-3 whitespace-nowrap">{formatDate(row.paidAt)}</td>
+                  <tr
+                    key={row.id}
+                    className="border-b border-white/5 align-top"
+                  >
+                    <td className="py-2 pr-3 whitespace-nowrap">
+                      {formatDate(row.paidAt)}
+                    </td>
                     <td className="py-2 pr-3 whitespace-nowrap">
                       <span className="font-mono">#{row.id}</span>
                       <br />
@@ -183,10 +204,18 @@ export default function StatementPage() {
                         {origin}/pay/{row.id}
                       </span>
                     </td>
-                    <td className="py-2 pr-3">{humanizeDescription(row.description) || "—"}</td>
-                    <td className="py-2 pr-3 font-mono text-xs">{shortAddress(row.client)}</td>
+                    <td className="py-2 pr-3">
+                      {humanizeDescription(row.description) || "—"}
+                    </td>
+                    <td className="py-2 pr-3 font-mono text-xs">
+                      {shortAddress(row.client)}
+                    </td>
                     <td className="py-2 text-right whitespace-nowrap">
-                      <TokenAmount amount={row.amount} tokenId={row.token} className="font-semibold" />
+                      <TokenAmount
+                        amount={row.amount}
+                        tokenId={row.token}
+                        className="font-semibold"
+                      />
                     </td>
                   </tr>
                 ))}
@@ -196,9 +225,10 @@ export default function StatementPage() {
 
           <footer className="space-y-1 border-t border-white/10 pt-4 text-xs text-slate-400">
             <p>
-              Every row is a payment recorded on the Stellar {config.network.toLowerCase()} by the
-              PayLoop contract. Open the invoice link above to see it, or check the contract and
-              wallet on the explorer:
+              Every row is a payment recorded on the Stellar{" "}
+              {config.network.toLowerCase()} by the PayLoop contract. Open the
+              invoice link above to see it, or check the contract and wallet on
+              the explorer:
             </p>
             <p className="break-all">
               Contract: {explorer.contract(config.contractId)}
@@ -206,14 +236,16 @@ export default function StatementPage() {
             <p className="break-all">Wallet: {explorer.account(address)}</p>
             {statement.undated > 0 && (
               <p>
-                {statement.undated} paid invoice{statement.undated === 1 ? " has" : "s have"} no
-                recorded payment date and {statement.undated === 1 ? "is" : "are"} not included.
+                {statement.undated} paid invoice
+                {statement.undated === 1 ? " has" : "s have"} no recorded
+                payment date and {statement.undated === 1 ? "is" : "are"} not
+                included.
               </p>
             )}
             {config.network !== "PUBLIC" && (
               <p>
-                This statement is from a test network. It does not show real money and is not
-                proof of income.
+                This statement is from a test network. It does not show real
+                money and is not proof of income.
               </p>
             )}
           </footer>

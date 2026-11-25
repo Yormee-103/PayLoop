@@ -21,15 +21,23 @@ export function StatusBadge({ status }: { status: InvoiceStatus }) {
 /** The red "Overdue" badge. Render it only when `isOverdue(invoice)` is true. */
 export function OverdueBadge({ className = "" }: { className?: string }) {
   return (
-    <span className={`badge bg-red-500/15 text-red-300 ${className}`}>Overdue</span>
+    <span className={`badge bg-red-500/15 text-red-300 ${className}`}>
+      Overdue
+    </span>
   );
 }
 
-export function Spinner({ className = "" }: { className?: string }) {
+export function Spinner({
+  className = "",
+  label = "Loading",
+}: {
+  className?: string;
+  label?: string;
+}) {
   return (
     <span
-      className={`inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white ${className}`}
-      aria-hidden
+      className={`inline-block h-4 w-4 motion-reduce:animate-none animate-spin rounded-full border-2 border-white/30 border-t-white ${className}`}
+      aria-label={label}
     />
   );
 }
@@ -47,13 +55,22 @@ export function Alert({
     info: "border-brand-500/30 bg-brand-500/10 text-brand-100",
   }[kind];
   return (
-    <div className={`rounded-lg border px-4 py-3 text-sm ${styles}`} role="alert">
+    <div
+      className={`rounded-lg border px-4 py-3 text-sm ${styles}`}
+      role="alert"
+    >
       {children}
     </div>
   );
 }
 
-export function TxLink({ hash, label = "View on explorer" }: { hash: string; label?: string }) {
+export function TxLink({
+  hash,
+  label = "View on explorer",
+}: {
+  hash: string;
+  label?: string;
+}) {
   return (
     <a
       href={explorer.tx(hash)}

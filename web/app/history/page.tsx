@@ -4,7 +4,13 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@/components/WalletProvider";
 import { ConnectPrompt } from "@/components/ConnectPrompt";
-import { Alert, EmptyState, OverdueBadge, Spinner, StatusBadge } from "@/components/ui";
+import {
+  Alert,
+  EmptyState,
+  OverdueBadge,
+  Spinner,
+  StatusBadge,
+} from "@/components/ui";
 import { AddressChip } from "@/components/AddressChip";
 import { isOverdue } from "@/lib/invoice-helpers";
 import { ScanStatus } from "@/components/ScanStatus";
@@ -12,11 +18,7 @@ import { InvoicePreview } from "@/components/InvoiceDocument";
 import { ShareMenu } from "@/components/ShareMenu";
 import type { Invoice } from "@/lib/contract";
 import { useInvoiceScan } from "@/lib/use-invoice-scan";
-import {
-  formatAmount,
-  formatDate,
-  humanizeDescription,
-} from "@/lib/format";
+import { formatAmount, formatDate, humanizeDescription } from "@/lib/format";
 import { getTokenConfig, isConfigured } from "@/lib/config";
 import { TokenAmount } from "@/components/TokenAmount";
 
@@ -163,7 +165,10 @@ export default function HistoryPage() {
       {loading && mine.length === 0 ? (
         <div className="space-y-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="card h-24 animate-pulse bg-white/5" />
+            <div
+              key={i}
+              className="card h-24 motion-reduce:animate-none animate-pulse bg-white/5"
+            />
           ))}
         </div>
       ) : mine.length === 0 ? (
@@ -242,7 +247,10 @@ export default function HistoryPage() {
                     PDF
                   </button>
                   {inv.status === "Pending" && (
-                    <ShareMenu invoice={inv} buttonClassName="btn-ghost text-xs" />
+                    <ShareMenu
+                      invoice={inv}
+                      buttonClassName="btn-ghost text-xs"
+                    />
                   )}
                 </div>
               </div>
@@ -260,5 +268,3 @@ export default function HistoryPage() {
     </div>
   );
 }
-
-

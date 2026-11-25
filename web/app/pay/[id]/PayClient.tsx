@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@/components/WalletProvider";
-import { Alert, OverdueBadge, Spinner, StatusBadge, TxLink } from "@/components/ui";
+import {
+  Alert,
+  OverdueBadge,
+  Spinner,
+  StatusBadge,
+  TxLink,
+} from "@/components/ui";
 import { AddressChip } from "@/components/AddressChip";
 import { InvoicePreview } from "@/components/InvoiceDocument";
 import { TrustlineButton } from "@/components/TrustlineButton";
@@ -15,21 +21,21 @@ import {
   hasTokenTrustline,
 } from "@/lib/contract";
 import { errorMessage } from "@/lib/async-resource";
-import { buildReminderMessage, isInvoiceOwner } from "@/lib/invoice-helpers";
+import {
+  buildReminderMessage,
+  isInvoiceOwner,
+  isOverdue,
+} from "@/lib/invoice-helpers";
+import { isConfigured } from "@/lib/config";
 import {
   formatAmount,
   formatDate,
   humanizeDescription,
   shortAddress,
 } from "@/lib/format";
-import { config, isConfigured } from "@/lib/config";
-import {
-  buildReminderMessage,
-  isInvoiceOwner,
-  isOverdue,
-} from "@/lib/invoice-helpers";
 import { useTokenMeta } from "@/lib/use-token-meta";
 import { trackEvent } from "@/lib/analytics";
+import { config } from "@/lib/config";
 import { useAsyncResource } from "@/lib/use-async-resource";
 
 export default function PayClient({ id }: { id: string }) {
@@ -131,7 +137,7 @@ export default function PayClient({ id }: { id: string }) {
   if (loading) {
     return (
       <div className="mx-auto max-w-lg">
-        <div className="card h-64 animate-pulse bg-white/5" />
+        <div className="card h-64 motion-reduce:animate-none animate-pulse bg-white/5" />
         <p className="mt-3 text-center text-xs text-slate-500">
           Loading invoice from chain…
         </p>
@@ -200,7 +206,10 @@ export default function PayClient({ id }: { id: string }) {
             label="From (freelancer)"
             value={<AddressChip address={invoice.freelancer} />}
           />
-          <Row label="To (client)" value={<AddressChip address={invoice.client} />} />
+          <Row
+            label="To (client)"
+            value={<AddressChip address={invoice.client} />}
+          />
           {invoice.dueDate > 0n && (
             <Row
               label="Due date"
@@ -309,8 +318,9 @@ export default function PayClient({ id }: { id: string }) {
               </button>
             ) : isOwner ? null : !isClient ? (
               <Alert kind="info">
-                This invoice is addressed to <AddressChip address={invoice.client} />.
-                Connect that wallet to pay it.
+                This invoice is addressed to{" "}
+                <AddressChip address={invoice.client} />. Connect that wallet to
+                pay it.
               </Alert>
             ) : trusted === false ? (
               <TrustlineButton

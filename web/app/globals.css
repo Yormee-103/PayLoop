@@ -8,8 +8,9 @@
    class on <html> swaps the values, so components need no per-theme rules.
    Channel tokens hold "R G B" so Tailwind can apply opacity to them. */
 :root {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    Helvetica, Arial, sans-serif;
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
 
   /* Surfaces and text */
   --page: 11 18 32;
@@ -62,6 +63,20 @@ html.light {
 
 html {
   scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  html,
+  html * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 body {
@@ -161,7 +176,8 @@ html.light .text-brand-300 {
   color: theme("colors.brand.700");
 }
 html.light .shadow-black\/20 {
-  box-shadow: 0 20px 25px -5px rgb(203 213 225 / 0.5),
+  box-shadow:
+    0 20px 25px -5px rgb(203 213 225 / 0.5),
     0 8px 10px -6px rgb(203 213 225 / 0.5);
 }
 

@@ -9,7 +9,7 @@ import { InvoicePreview } from "@/components/InvoiceDocument";
 import { createInvoice, getAllowedTokenIds } from "@/lib/contract";
 import { errorMessage } from "@/lib/async-resource";
 import { dueDateError, todayDateInputValue } from "@/lib/invoice-helpers";
-import { toBaseUnits } from "@/lib/format";
+import { parseAmount } from "@/lib/format";
 import { config, getTokenConfig, isConfigured, tokens } from "@/lib/config";
 import { useTokenMeta } from "@/lib/use-token-meta";
 import { trackEvent } from "@/lib/analytics";
@@ -149,9 +149,9 @@ export default function CreatePage() {
     if (client === address) {
       return "The client can't be your own address.";
     }
-    const n = Number(amount);
-    if (!Number.isFinite(n) || n <= 0) {
-      return "Enter an amount greater than zero.";
+    const parsed = parseAmount(amount, token.decimals);
+    if (!parsed.ok) {
+      return parsed.error;
     }
     if (!description.trim()) {
       return "Add a short description of the work.";

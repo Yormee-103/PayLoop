@@ -51,6 +51,10 @@
 //! This pattern is designed to be copied by other Soroban teams building multi-party contracts.
 
 use super::*;
+use proptest::{
+    collection,
+    test_runner::{Config, RngAlgorithm, TestRng, TestRunner},
+};
 use soroban_sdk::{
     testutils::{Address as _, Ledger as _},
     token, Address, Env, String,
@@ -473,6 +477,198 @@ fn invoice_with_id(s: &Setup, freelancer: &Address, client: &Address, amount: i1
     )
 }
 
+// Property tests use fixed ChaCha seeds so their generated cases are identical
+// locally and in CI. Eight cases per property keeps the host-backed Soroban
+// setup fast while varying the amounts, counts, and index assignments.
+const PROPERTY_CASES: u32 = 8;
+
+fn property_runner(seed: u8) -> TestRunner {
+    let config = Config {
+        cases: PROPERTY_CASES,
+        failure_persistence: None,
+        ..Config::default()
+    };
+    TestRunner::new_with_rng(
+        config,
+        TestRng::from_seed(RngAlgorithm::ChaCha, &[seed; 32]),
+    )
+}
+
+fn assert_ids_in_order(invoices: &soroban_sdk::Vec<Invoice>) {
+    for index in 0..invoices.len() {
+        assert_eq!(invoices.get(index).unwrap().id, u64::from(index) + 1);
+    }
+}
+
+#[test]
+fn property_invoice_ids_are_strictly_increasing() {
+    property_runner(1)
+        .run(&collection::vec(1i128..=1_000_000i128, 1..=8), |amounts| {
+            let s = setup();
+            let freelancer = Address::generate(&s.env);
+            let client = Address::generate(&s.env);
+            let mut previous_id = 0;
+
+            for amount in amounts {
+                let id = invoice_with_id(&s, &freelancer, &client, amount);
+                assert!(id > previous_id);
+                previous_id = id;
+            }
+
+            assert_eq!(s.contract.invoice_count(), previous_id + 1);
+            assert_ids_in_order(&s.contract.get_invoice_history(&freelancer));
+            Ok(())
+        })
+        .unwrap();
+}
+
+#[test]
+fn property_paid_amount_equals_transferred_amount() {
+    property_runner(2)
+        .run(
+            &(1i128..=1_000_000i128, 0i128..=1_000_000i128),
+            |(amount, extra)| {
+                let s = setup();
+                let freelancer = Address::generate(&s.env);
+                let client = Address::generate(&s.env);
+                s.token_admin.mint(&client, &(amount + extra));
+                let id = invoice_with_id(&s, &freelancer, &client, amount);
+
+                s.contract.fund_invoice(&id);
+
+                let token_client = token::Client::new(&s.env, &s.token);
+                let invoice = s.contract.get_invoice(&id);
+                assert_eq!(invoice.status, InvoiceStatus::Paid);
+                assert_eq!(invoice.amount, amount);
+                assert_eq!(token_client.balance(&freelancer), amount);
+                assert_eq!(token_client.balance(&client), extra);
+                Ok(())
+            },
+        )
+        .unwrap();
+}
+
+#[test]
+fn property_paid_invoice_cannot_be_paid_again() {
+    property_runner(3)
+        .run(
+            &(1i128..=1_000_000i128, 0i128..=1_000_000i128),
+            |(amount, extra)| {
+                let s = setup();
+                let freelancer = Address::generate(&s.env);
+                let client = Address::generate(&s.env);
+                s.token_admin.mint(&client, &(amount + extra));
+                let id = invoice_with_id(&s, &freelancer, &client, amount);
+                s.contract.fund_invoice(&id);
+
+                let token_client = token::Client::new(&s.env, &s.token);
+                let freelancer_balance = token_client.balance(&freelancer);
+                let client_balance = token_client.balance(&client);
+                assert_eq!(
+                    s.contract.try_fund_invoice(&id),
+                    Err(Ok(Error::AlreadyPaid))
+                );
+                assert_eq!(token_client.balance(&freelancer), freelancer_balance);
+                assert_eq!(token_client.balance(&client), client_balance);
+                assert_eq!(s.contract.get_invoice(&id).status, InvoiceStatus::Paid);
+                Ok(())
+            },
+        )
+        .unwrap();
+}
+
+#[test]
+fn property_freelancer_history_is_consistent() {
+    property_runner(4)
+        .run(
+            &collection::vec((0u8..3, 0u8..3, 1i128..=1_000_000i128), 1..=8),
+            |entries| {
+                let s = setup();
+                let freelancers = [
+                    Address::generate(&s.env),
+                    Address::generate(&s.env),
+                    Address::generate(&s.env),
+                ];
+                let clients = [
+                    Address::generate(&s.env),
+                    Address::generate(&s.env),
+                    Address::generate(&s.env),
+                ];
+                let mut expected_ids: [soroban_sdk::Vec<u64>; 3] =
+                    core::array::from_fn(|_| soroban_sdk::Vec::new(&s.env));
+
+                for (freelancer, client, amount) in entries {
+                    let id = invoice_with_id(
+                        &s,
+                        &freelancers[usize::from(freelancer)],
+                        &clients[usize::from(client)],
+                        amount,
+                    );
+                    expected_ids[usize::from(freelancer)].push_back(id);
+                }
+
+                for (index, freelancer) in freelancers.iter().enumerate() {
+                    let history = s.contract.get_invoice_history(freelancer);
+                    assert_eq!(history.len(), expected_ids[index].len());
+                    for (history_index, expected_id) in expected_ids[index].iter().enumerate() {
+                        assert_eq!(history.get(history_index as u32).unwrap().id, expected_id);
+                    }
+                    for invoice in history.iter() {
+                        assert_eq!(invoice.freelancer, *freelancer);
+                    }
+                }
+                Ok(())
+            },
+        )
+        .unwrap();
+}
+
+#[test]
+fn property_client_history_is_consistent() {
+    property_runner(5)
+        .run(
+            &collection::vec((0u8..3, 0u8..3, 1i128..=1_000_000i128), 1..=8),
+            |entries| {
+                let s = setup();
+                let freelancers = [
+                    Address::generate(&s.env),
+                    Address::generate(&s.env),
+                    Address::generate(&s.env),
+                ];
+                let clients = [
+                    Address::generate(&s.env),
+                    Address::generate(&s.env),
+                    Address::generate(&s.env),
+                ];
+                let mut expected_ids: [soroban_sdk::Vec<u64>; 3] =
+                    core::array::from_fn(|_| soroban_sdk::Vec::new(&s.env));
+
+                for (freelancer, client, amount) in entries {
+                    let id = invoice_with_id(
+                        &s,
+                        &freelancers[usize::from(freelancer)],
+                        &clients[usize::from(client)],
+                        amount,
+                    );
+                    expected_ids[usize::from(client)].push_back(id);
+                }
+
+                for (index, client) in clients.iter().enumerate() {
+                    let history = s.contract.get_client_history(client);
+                    assert_eq!(history.len(), expected_ids[index].len());
+                    for (history_index, expected_id) in expected_ids[index].iter().enumerate() {
+                        assert_eq!(history.get(history_index as u32).unwrap().id, expected_id);
+                    }
+                    for invoice in history.iter() {
+                        assert_eq!(invoice.client, *client);
+                    }
+                }
+                Ok(())
+            },
+        )
+        .unwrap();
+}
+
 #[test]
 fn create_invoice_ids_increment() {
     let s = setup();
@@ -756,4 +952,377 @@ fn create_invoice_uses_default_token_when_not_specified() {
     // Verify invoice used the default token
     let inv = s.contract.get_invoice(&id);
     assert_eq!(inv.token, s.token);
+}
+
+// ---------------------------------------------------------------------------
+// Resource Budget Regression Tests
+// ---------------------------------------------------------------------------
+
+struct BudgetMetrics {
+    cpu: u64,
+    mem: u64,
+}
+
+fn measure_budget<F, R>(env: &Env, f: F) -> (R, BudgetMetrics)
+where
+    F: FnOnce() -> R,
+{
+    env.cost_estimate().budget().reset_default();
+    let res = f();
+    let cpu = env.cost_estimate().budget().cpu_instruction_cost();
+    let mem = env.cost_estimate().budget().memory_bytes_cost();
+    (res, BudgetMetrics { cpu, mem })
+}
+
+#[test]
+fn budget_regression_for_every_entrypoint() {
+    extern crate std;
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let (token, token_admin) = create_token(&env, &admin);
+    let (token2, _) = create_token(&env, &admin);
+
+    let contract_id = env.register(InvoiceContract, ());
+    let contract = InvoiceContractClient::new(&env, &contract_id);
+
+    // 1. initialize
+    let (_, init_b) = measure_budget(&env, || {
+        contract.initialize(&admin, &token);
+    });
+    std::println!("initialize: cpu={}, mem={}", init_b.cpu, init_b.mem);
+    assert!(
+        init_b.cpu < 200_000,
+        "initialize cpu {} exceeded threshold 200,000",
+        init_b.cpu
+    );
+    assert!(
+        init_b.mem < 60_000,
+        "initialize mem {} exceeded threshold 60,000",
+        init_b.mem
+    );
+
+    // 2. add_allowed_token
+    let (_, add_token_b) = measure_budget(&env, || {
+        contract.add_allowed_token(&admin, &token2);
+    });
+    std::println!(
+        "add_allowed_token: cpu={}, mem={}",
+        add_token_b.cpu,
+        add_token_b.mem
+    );
+    assert!(
+        add_token_b.cpu < 200_000,
+        "add_allowed_token cpu {} exceeded threshold 200,000",
+        add_token_b.cpu
+    );
+    assert!(
+        add_token_b.mem < 60_000,
+        "add_allowed_token mem {} exceeded threshold 60,000",
+        add_token_b.mem
+    );
+
+    // 3. create_invoice
+    let freelancer = Address::generate(&env);
+    let client = Address::generate(&env);
+    token_admin.mint(&client, &10_000_000i128);
+
+    let (id1, create_b) = measure_budget(&env, || {
+        contract.create_invoice(
+            &freelancer,
+            &client,
+            &1_000_000i128,
+            &String::from_str(&env, "design services"),
+            &1000u64,
+        )
+    });
+    std::println!("create_invoice: cpu={}, mem={}", create_b.cpu, create_b.mem);
+    assert!(
+        create_b.cpu < 500_000,
+        "create_invoice cpu {} exceeded threshold 500,000",
+        create_b.cpu
+    );
+    assert!(
+        create_b.mem < 200_000,
+        "create_invoice mem {} exceeded threshold 200,000",
+        create_b.mem
+    );
+
+    // 4. create_invoice_with_token
+    let (id2, create_tok_b) = measure_budget(&env, || {
+        contract.create_invoice_with_token(
+            &freelancer,
+            &client,
+            &2_000_000i128,
+            &String::from_str(&env, "development work"),
+            &2000u64,
+            &token2,
+        )
+    });
+    std::println!(
+        "create_invoice_with_token: cpu={}, mem={}",
+        create_tok_b.cpu,
+        create_tok_b.mem
+    );
+    assert!(
+        create_tok_b.cpu < 500_000,
+        "create_invoice_with_token cpu {} exceeded threshold 500,000",
+        create_tok_b.cpu
+    );
+    assert!(
+        create_tok_b.mem < 200_000,
+        "create_invoice_with_token mem {} exceeded threshold 200,000",
+        create_tok_b.mem
+    );
+
+    // 5. fund_invoice
+    let (_, fund_b) = measure_budget(&env, || {
+        contract.fund_invoice(&id1);
+    });
+    std::println!("fund_invoice: cpu={}, mem={}", fund_b.cpu, fund_b.mem);
+    assert!(
+        fund_b.cpu < 1_500_000,
+        "fund_invoice cpu {} exceeded threshold 1,500,000",
+        fund_b.cpu
+    );
+    assert!(
+        fund_b.mem < 300_000,
+        "fund_invoice mem {} exceeded threshold 300,000",
+        fund_b.mem
+    );
+
+    // 6. release_funds
+    let (_, release_b) = measure_budget(&env, || {
+        contract.release_funds(&id1);
+    });
+    std::println!(
+        "release_funds: cpu={}, mem={}",
+        release_b.cpu,
+        release_b.mem
+    );
+    assert!(
+        release_b.cpu < 300_000,
+        "release_funds cpu {} exceeded threshold 300,000",
+        release_b.cpu
+    );
+    assert!(
+        release_b.mem < 100_000,
+        "release_funds mem {} exceeded threshold 100,000",
+        release_b.mem
+    );
+
+    // 7. get_invoice
+    let (_, get_inv_b) = measure_budget(&env, || {
+        contract.get_invoice(&id1);
+    });
+    std::println!("get_invoice: cpu={}, mem={}", get_inv_b.cpu, get_inv_b.mem);
+    assert!(
+        get_inv_b.cpu < 300_000,
+        "get_invoice cpu {} exceeded threshold 300,000",
+        get_inv_b.cpu
+    );
+    assert!(
+        get_inv_b.mem < 100_000,
+        "get_invoice mem {} exceeded threshold 100,000",
+        get_inv_b.mem
+    );
+
+    // 8. invoice_count
+    let (_, count_b) = measure_budget(&env, || {
+        contract.invoice_count();
+    });
+    std::println!("invoice_count: cpu={}, mem={}", count_b.cpu, count_b.mem);
+    assert!(
+        count_b.cpu < 200_000,
+        "invoice_count cpu {} exceeded threshold 200,000",
+        count_b.cpu
+    );
+    assert!(
+        count_b.mem < 80_000,
+        "invoice_count mem {} exceeded threshold 80,000",
+        count_b.mem
+    );
+
+    // 9. get_invoice_range
+    let (_, range_b) = measure_budget(&env, || {
+        contract.get_invoice_range(&freelancer, &0u32, &10u32);
+    });
+    std::println!(
+        "get_invoice_range: cpu={}, mem={}",
+        range_b.cpu,
+        range_b.mem
+    );
+    assert!(
+        range_b.cpu < 600_000,
+        "get_invoice_range cpu {} exceeded threshold 600,000",
+        range_b.cpu
+    );
+    assert!(
+        range_b.mem < 200_000,
+        "get_invoice_range mem {} exceeded threshold 200,000",
+        range_b.mem
+    );
+
+    // 10. get_client_history
+    let (_, client_hist_b) = measure_budget(&env, || {
+        contract.get_client_history(&client);
+    });
+    std::println!(
+        "get_client_history: cpu={}, mem={}",
+        client_hist_b.cpu,
+        client_hist_b.mem
+    );
+    assert!(
+        client_hist_b.cpu < 600_000,
+        "get_client_history cpu {} exceeded threshold 600,000",
+        client_hist_b.cpu
+    );
+    assert!(
+        client_hist_b.mem < 200_000,
+        "get_client_history mem {} exceeded threshold 200,000",
+        client_hist_b.mem
+    );
+
+    // 11. default_token_address
+    let (_, def_tok_b) = measure_budget(&env, || {
+        contract.default_token_address();
+    });
+    std::println!(
+        "default_token_address: cpu={}, mem={}",
+        def_tok_b.cpu,
+        def_tok_b.mem
+    );
+    assert!(
+        def_tok_b.cpu < 200_000,
+        "default_token_address cpu {} exceeded threshold 200,000",
+        def_tok_b.cpu
+    );
+    assert!(
+        def_tok_b.mem < 80_000,
+        "default_token_address mem {} exceeded threshold 80,000",
+        def_tok_b.mem
+    );
+
+    // 12. get_allowed_tokens
+    let (_, allowed_tok_b) = measure_budget(&env, || {
+        contract.get_allowed_tokens();
+    });
+    std::println!(
+        "get_allowed_tokens: cpu={}, mem={}",
+        allowed_tok_b.cpu,
+        allowed_tok_b.mem
+    );
+    assert!(
+        allowed_tok_b.cpu < 200_000,
+        "get_allowed_tokens cpu {} exceeded threshold 200,000",
+        allowed_tok_b.cpu
+    );
+    assert!(
+        allowed_tok_b.mem < 80_000,
+        "get_allowed_tokens mem {} exceeded threshold 80,000",
+        allowed_tok_b.mem
+    );
+
+    // 13. version
+    let (_, ver_b) = measure_budget(&env, || {
+        contract.version();
+    });
+    std::println!("version: cpu={}, mem={}", ver_b.cpu, ver_b.mem);
+    assert!(
+        ver_b.cpu < 150_000,
+        "version cpu {} exceeded threshold 150,000",
+        ver_b.cpu
+    );
+    assert!(
+        ver_b.mem < 60_000,
+        "version mem {} exceeded threshold 60,000",
+        ver_b.mem
+    );
+
+    // 14. get_invoice_history
+    let (_, hist_b) = measure_budget(&env, || {
+        contract.get_invoice_history(&freelancer);
+    });
+    std::println!(
+        "get_invoice_history (2 invoices): cpu={}, mem={}",
+        hist_b.cpu,
+        hist_b.mem
+    );
+    assert!(
+        hist_b.cpu < 600_000,
+        "get_invoice_history cpu {} exceeded threshold 600,000",
+        hist_b.cpu
+    );
+    assert!(
+        hist_b.mem < 200_000,
+        "get_invoice_history mem {} exceeded threshold 200,000",
+        hist_b.mem
+    );
+    let _ = id2;
+}
+
+#[test]
+fn test_history_reads_scale_with_invoice_count() {
+    extern crate std;
+    let s = setup();
+    let freelancer = Address::generate(&s.env);
+    let client = Address::generate(&s.env);
+
+    // Create 10 invoices for the freelancer
+    let counts = [1usize, 3usize, 6usize, 10usize];
+    let mut last_cpu = 0u64;
+    let mut last_mem = 0u64;
+
+    for &target in &counts {
+        // Create invoices up to target count
+        let current_count = s.contract.get_invoice_history(&freelancer).len() as usize;
+        for i in current_count..target {
+            s.contract.create_invoice(
+                &freelancer,
+                &client,
+                &100_000i128,
+                &String::from_str(&s.env, "consulting"),
+                &(i as u64),
+            );
+        }
+
+        let (invoices, metrics) =
+            measure_budget(&s.env, || s.contract.get_invoice_history(&freelancer));
+        assert_eq!(invoices.len() as usize, target);
+        std::println!(
+            "get_invoice_history for {} invoices: cpu={}, mem={}",
+            target,
+            metrics.cpu,
+            metrics.mem
+        );
+
+        // Budget assertion for scaled reads: 10 invoices must consume < 1,500,000 CPU and < 450,000 memory
+        assert!(
+            metrics.cpu < 1_500_000,
+            "History read for {} invoices cpu {} exceeded threshold 1,500,000",
+            target,
+            metrics.cpu
+        );
+        assert!(
+            metrics.mem < 450_000,
+            "History read for {} invoices mem {} exceeded threshold 450,000",
+            target,
+            metrics.mem
+        );
+
+        // Verify monotonic cost increase as history expands
+        if last_cpu > 0 {
+            assert!(
+                metrics.cpu > last_cpu,
+                "CPU should increase monotonically with history size"
+            );
+            assert!(
+                metrics.mem > last_mem,
+                "Memory should increase monotonically with history size"
+            );
+        }
+        last_cpu = metrics.cpu;
+        last_mem = metrics.mem;
+    }
 }

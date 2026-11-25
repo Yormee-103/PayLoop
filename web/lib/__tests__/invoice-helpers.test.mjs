@@ -1,13 +1,27 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildCreateInvoiceUrl,
   buildReminderMessage,
   dueDateError,
   invoicePrintTitle,
   isInvoiceOwner,
   isOverdue,
+  parseTokenBalance,
+  isValidInvoiceId,
   todayDateInputValue,
 } from "../invoice-helpers.ts";
+
+test("duplicate invoice URLs encode client, amount and description", () => {
+  assert.equal(
+    buildCreateInvoiceUrl({
+      client: "GCLIENT",
+      amount: "100.5",
+      description: "Design & build",
+    }),
+    "/create?client=GCLIENT&amount=100.5&description=Design+%26+build"
+  );
+});
 
 // ── #66 due date ────────────────────────────────────────────────────────────
 
@@ -119,3 +133,24 @@ test("isOverdue defaults to the current clock", () => {
   assert.equal(isOverdue({ status: "Pending", dueDate: 99_999_999_999n }), false);
 });
 
+
+test("parseTokenBalance keeps a genuine zero and parses amounts", () => {
+  assert.equal(parseTokenBalance(0n), 0n);
+  assert.equal(parseTokenBalance("0"), 0n);
+  assert.equal(parseTokenBalance(12345678901234567890n), 12345678901234567890n);
+});
+
+test("parseTokenBalance throws instead of returning 0 for a missing value", () => {
+  assert.throws(() => parseTokenBalance(null));
+  assert.throws(() => parseTokenBalance(undefined));
+test("isValidInvoiceId accepts digit-only ids up to u64::MAX", () => {
+  assert.equal(isValidInvoiceId("1"), true);
+  assert.equal(isValidInvoiceId("0"), true);
+  assert.equal(isValidInvoiceId("18446744073709551615"), true);
+});
+
+test("isValidInvoiceId rejects non-numeric, negative, decimal and oversized ids", () => {
+  for (const id of ["", "abc", "1.5", "-1", "+1", " 1", "1e3", "0x10", "18446744073709551616", "99999999999999999999999"]) {
+    assert.equal(isValidInvoiceId(id), false, id);
+  }
+});

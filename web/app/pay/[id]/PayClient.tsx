@@ -22,12 +22,6 @@ import {
 } from "@/lib/contract";
 import { errorMessage } from "@/lib/async-resource";
 import {
-  buildReminderMessage,
-  isInvoiceOwner,
-  isOverdue,
-} from "@/lib/invoice-helpers";
-import { isConfigured } from "@/lib/config";
-import {
   formatAmount,
   formatDate,
   humanizeDescription,
@@ -272,7 +266,7 @@ export default function PayClient({ id }: { id: string }) {
                       "reminder",
                       buildReminderMessage({
                         id: invoice.id,
-                        amountLabel: `${formatAmount(invoice.amount)} ${config.tokenSymbol}`,
+                        amountLabel: `${formatAmount(invoice.amount, token.decimals)} ${token.symbol}`,
                         description: humanizeDescription(invoice.description),
                         url: payUrl,
                       }),

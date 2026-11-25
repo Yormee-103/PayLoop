@@ -39,7 +39,7 @@ Keep the mirrored types in `src/lib.rs` in step with
 ## Node: reading and creating invoices
 
 [`node/`](node) is one script, `payloop.mjs`, using `@stellar/stellar-sdk`.
-It needs Node 20 or newer.
+It needs Node 22 or newer.
 
 ```bash
 cd examples/node

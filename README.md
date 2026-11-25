@@ -8,12 +8,6 @@
 
 PayLoop is an invoicing + escrow dApp built on [Stellar](https://stellar.org)/Soroban. It lets freelancers (built with Nigerian & African freelancers working with foreign clients in mind) create an invoice, share a payment link, and receive **USDC** the moment a client funds it — settling in ~5 seconds for a fraction of a cent, instead of the 2–5 days and 5–8% that PayPal/Payoneer cost. Every paid invoice is a timestamped on-chain record that becomes the freelancer's portable income history.
 
-Open-source Soroban invoicing and escrow dApp enabling freelancers to receive USDC payments and build verifiable on-chain income records.
-
-Website: https://pay-loop-neon.vercel.app
-
-Topics: stellar, soroban, rust, usdc, escrow, invoicing, freelancers, web3, payments
-
 ---
 
 ## The core loop

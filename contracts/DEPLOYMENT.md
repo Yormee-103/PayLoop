@@ -17,9 +17,44 @@ stellar keys address deployer
 
 ```bash
 cd contracts
-stellar contract build
+cargo build --locked --target wasm32v1-none --release
 # -> target/wasm32v1-none/release/payloop_invoice.wasm
 ```
+
+The repository's `rust-toolchain.toml` pins Rust 1.98.1, including the
+`wasm32v1-none` target. Keep that toolchain, `Cargo.lock`, and the release
+build command unchanged when reproducing a deployment artifact. CI uses this
+same toolchain and writes the SHA-256 and source commit to its job summary.
+
+### Verify a source checkout against the deployed contract
+
+From the repository root, build the contract and compare its hash with the
+testnet deployment manifest:
+
+```bash
+(cd contracts && cargo build --locked --target wasm32v1-none --release)
+bash scripts/verify-wasm-hash.sh
+```
+
+The script prints both SHA-256 values and exits with status 0 only when they
+match. A mismatch means that checkout did not produce the WASM whose hash is
+recorded in `deployment.testnet.json`; it does not change the deployed
+contract. You can pass a WASM path and manifest path explicitly when verifying
+another artifact or network.
+
+```bash
+bash scripts/verify-wasm-hash.sh path/to/payloop_invoice.wasm path/to/deployment.json
+```
+
+### Reproducibility findings
+
+Rust's WASM code generation can change between compiler releases, so the former
+floating `stable` toolchain could not provide a durable byte-for-byte claim.
+The pinned Rust version, target, locked dependencies, and release profile now
+make the build inputs explicit across machines. The CI summary is the canonical
+reference for each commit; contributors should run the command above and
+compare its SHA-256 before treating a local build as equivalent. A matching
+hash is the evidence that a particular machine produced the same artifact.
 
 ## 2. Create a test USDC token (Stellar Asset Contract)
 

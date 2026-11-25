@@ -1,0 +1,54 @@
+name: Bug report
+description: Report a problem with PayLoop so we can reproduce and fix it.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please fill in the fields below — the
+        details in [CONTRIBUTING.md](../../CONTRIBUTING.md#reporting-bugs)
+        are what maintainers need to reproduce the problem.
+  - type: textarea
+    id: what-did
+    attributes:
+      label: What did you do?
+      description: Which page/route, and what you clicked or signed.
+      placeholder: "On /create, I filled in an invoice and clicked 'Create invoice'…"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened vs. what you expected
+      description: Include the exact error text, if any.
+      placeholder: "Expected the invoice to be created. Instead I saw: …"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser + Freighter version, network, and live app vs. local build.
+      placeholder: |
+        - Browser: Chrome 131
+        - Freighter version: 5.20.0
+        - Network: testnet
+        - Live app or local build: live app
+    validations:
+      required: true
+  - type: textarea
+    id: on-chain-evidence
+    attributes:
+      label: On-chain evidence (if relevant)
+      description: A stellar.expert transaction or contract link (contract addresses are in the root README).
+      placeholder: "https://stellar.expert/explorer/testnet/tx/…"
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and did not find a duplicate of this bug.
+          required: true

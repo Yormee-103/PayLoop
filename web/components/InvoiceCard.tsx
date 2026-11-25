@@ -3,13 +3,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Invoice } from "@/lib/contract";
-import { formatAmount, formatDate, humanizeDescription } from "@/lib/format";
+import {
+  formatAmount,
+  formatDate,
+  fromBaseUnits,
+  humanizeDescription,
+} from "@/lib/format";
 import { useTokenMeta } from "@/lib/use-token-meta";
 import { StatusBadge, OverdueBadge } from "./ui";
 import { AddressChip } from "./AddressChip";
 import { isOverdue } from "@/lib/invoice-helpers";
 import { InvoicePreview } from "./InvoiceDocument";
 import { ShareMenu } from "./ShareMenu";
+import { buildCreateInvoiceUrl } from "@/lib/invoice-helpers";
 
 export function InvoiceCard({
   invoice,
@@ -38,7 +44,6 @@ export function InvoiceCard({
       window.location.href = link();
     }
   }
-
 
   const overdue = isOverdue(invoice);
 
@@ -71,7 +76,9 @@ export function InvoiceCard({
           </dt>
           <dd>
             <AddressChip
-              address={role === "freelancer" ? invoice.client : invoice.freelancer}
+              address={
+                role === "freelancer" ? invoice.client : invoice.freelancer
+              }
             />
           </dd>
         </div>
@@ -106,11 +113,29 @@ export function InvoiceCard({
           >
             Open
           </Link>
-          <button onClick={() => setPreview(true)} className="btn-ghost text-sm" title="Preview / save as PDF">
+          <button
+            onClick={() => setPreview(true)}
+            className="btn-ghost text-sm"
+            title="Preview / save as PDF"
+          >
             PDF
           </button>
         </div>
       )}
+
+      <div>
+        <Link
+          href={buildCreateInvoiceUrl({
+            client: invoice.client,
+            amount: fromBaseUnits(invoice.amount, token.decimals),
+            description: invoice.description,
+          })}
+          className="btn-ghost text-sm"
+          title="Create a similar invoice"
+        >
+          Duplicate
+        </Link>
+      </div>
 
       <InvoicePreview
         invoice={invoice}

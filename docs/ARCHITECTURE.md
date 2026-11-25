@@ -36,6 +36,8 @@ Rust / `soroban-sdk` 27. State is keyed by an enum `DataKey`:
 - `Admin`, `DefaultToken`, `NextId` — instance storage set at `initialize`.
 - `Invoice(u64)` — each invoice struct, persistent storage.
 - `History(Address)` — per-freelancer list of invoice ids, persistent.
+- `ClientHistory(Address)` — per-client list of invoice ids, persistent
+  (added in PR #42).
 
 Entry points:
 
@@ -48,6 +50,9 @@ Entry points:
 | `fund_invoice(invoice_id)`                                          | client     | pre-checks the client balance (typed `InsufficientBalance` error instead of an opaque token trap), then atomic `token.transfer(client → freelancer)`, marks `Paid`, emits `InvoicePaid` |
 | `release_funds(invoice_id)`                                         | —          | reserved seam for future held-escrow; no-op in the instant-release MVP                                                                                                                  |
 | `get_invoice(id)` / `get_invoice_history(freelancer)`               | — (read)   | reads                                                                                                                                                                                   |
+| `invoice_count()`                                                   | — (read)   | returns the number of invoices created so far                                                                                                                                           |
+| `get_invoice_range(start, limit)`                                   | — (read)   | returns a bounded page of invoices by id                                                                                                                                                |
+| `get_client_history(client)`                                        | — (read)   | reads the per-client list of invoice ids (`ClientHistory`)                                                                                                                              |
 | `default_token_address()` / `get_allowed_tokens()` / `version()`    | — (read)   | metadata                                                                                                                                                                                |
 
 Errors are a typed `contracterror` enum (`NotInitialized`, `AlreadyInitialized`,
@@ -55,7 +60,7 @@ Errors are a typed `contracterror` enum (`NotInitialized`, `AlreadyInitialized`,
 v1 testnet deployment, keeping codes 1–5 wire-compatible —
 `InvalidDescription`, `InvalidParties`, `InsufficientBalance`, `TokenNotAllowed`).
 
-Eighteen unit tests in `contracts/invoice/src/test.rs` cover the
+Twenty-three unit tests in `contracts/invoice/src/test.rs` cover the
 create→fund→paid loop, history ordering and empty-history, double-funding
 rejection, non-positive amounts, missing invoices, timestamps,
 double-initialize, sequential id allocation, self-directed invoices, empty

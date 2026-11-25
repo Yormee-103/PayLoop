@@ -3,6 +3,9 @@
 Thanks for your interest in improving PayLoop. This short guide covers how to
 report problems, propose changes, and get PRs merged.
 
+Please read our [Code of Conduct](CODE_OF_CONDUCT.md) — by participating in
+this project you agree to abide by its terms.
+
 ## Reporting bugs
 
 Open a GitHub issue. A good bug report includes:
@@ -58,6 +61,21 @@ npm install
 npm run lint
 npm run build
 ```
+
+### Formatting
+
+The `web/` project is formatted with [Prettier](https://prettier.io) (config in
+`web/.prettierrc`, editor defaults in the root `.editorconfig`). Before opening
+a PR that touches `web/`, run:
+
+```bash
+cd web
+npm run format        # reformat changed files in place
+npm run format:check  # verify formatting without changing files
+```
+
+CI runs `format:check` on every PR. Formatting the existing `web/` tree is a
+separate one-time step, so do not reformat unrelated files in your PR.
 
 CI (`.github/workflows/`) runs the same checks on every PR; both must be green
 for review.
@@ -139,7 +157,7 @@ list is the short version of what is below.
 
 ## Test policy
 
-- `contracts/invoice/src/test.rs` must pass in full (27 tests; `MockAuth`-based
+- `contracts/invoice/src/test.rs` must pass in full (23 tests; `MockAuth`-based
   authorization tests sit next to `mock_all_auths` convenience tests — new
   state-changing entrypoints should get both).
 - Do not weaken or delete existing tests to make a change pass. If a test is

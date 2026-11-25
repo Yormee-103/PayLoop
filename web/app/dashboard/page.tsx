@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@/components/WalletProvider";
 import { ConnectPrompt } from "@/components/ConnectPrompt";
-import { InvoiceCard } from "@/components/InvoiceCard";
+import { DashboardInvoiceList } from "@/components/DashboardInvoiceList";
+import { IncomeOverview } from "@/components/IncomeOverview";
+import { ShareMenu } from "@/components/ShareMenu";
 import { Alert, EmptyState, Spinner } from "@/components/ui";
 import {
   getInvoiceHistory,
@@ -15,13 +16,11 @@ import { isConfigured, tokens } from "@/lib/config";
 import { FaucetButton } from "@/components/FaucetButton";
 import { TrustlineButton } from "@/components/TrustlineButton";
 import { TokenAmount } from "@/components/TokenAmount";
-import { useTokenMeta } from "@/lib/use-token-meta";
 import { isOverdue } from "@/lib/invoice-helpers";
 import { useAsyncResource } from "@/lib/use-async-resource";
 
 const NO_INVOICES: Invoice[] = [];
 const NO_BALANCES: Record<string, bigint> = {};
-import { ShareMenu } from "@/components/ShareMenu";
 
 export default function DashboardPage() {
   const { address } = useWallet();
@@ -119,6 +118,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <IncomeOverview invoices={invoices} />
+
       {error && (
         <Alert kind="error">
           <span>{error}</span>{" "}
@@ -168,11 +169,7 @@ export default function DashboardPage() {
           }
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {invoices.map((inv) => (
-            <InvoiceCard key={inv.id} invoice={inv} role="freelancer" />
-          ))}
-        </div>
+        <DashboardInvoiceList invoices={invoices} />
       )}
     </div>
   );

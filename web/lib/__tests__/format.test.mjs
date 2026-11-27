@@ -8,6 +8,7 @@ import {
   shortAddress,
   formatDate,
   humanizeDescription,
+  parseAmount,
 } from "../format.ts";
 
 // Tests for toBaseUnits conversion from human-readable to base units (stroops)
@@ -52,6 +53,53 @@ test("toBaseUnits: accepts custom decimal places", () => {
   assert.equal(toBaseUnits("100", 2), 10000n); // 2 decimals
   assert.equal(toBaseUnits("100.5", 2), 10050n);
   assert.equal(toBaseUnits("0.01", 2), 1n);
+});
+
+test("toBaseUnits: throws a clear error instead of a SyntaxError for malformed input", () => {
+  for (const bad of ["1e3", "Infinity", "1_000", "0x10"]) {
+    assert.throws(() => toBaseUnits(bad), (err) => {
+      assert.ok(!(err instanceof SyntaxError));
+      assert.ok(err instanceof Error);
+      return true;
+    });
+  }
+});
+
+// Tests for parseAmount (strict validation used by Create, Withdraw and templates)
+test("parseAmount: accepts valid plain decimal inputs", () => {
+  assert.deepEqual(parseAmount("100"), { ok: true, value: 100_0000000n });
+  assert.deepEqual(parseAmount("1.5"), { ok: true, value: 1_5000000n });
+  assert.deepEqual(parseAmount("0.0000001"), { ok: true, value: 1n });
+  assert.deepEqual(parseAmount("123.4567890"), { ok: true, value: 123_4567890n });
+});
+
+test("parseAmount: rejects scientific notation, hex, separators, Infinity", () => {
+  for (const bad of ["1e3", "0x10", "1_000", "Infinity", "-1", "abc"]) {
+    const res = parseAmount(bad);
+    assert.equal(res.ok, false, `expected rejection for ${bad}`);
+    assert.equal(typeof res.error, "string");
+    assert.ok(res.error.length > 0);
+  }
+});
+
+test("parseAmount: rejects more than 7 decimal places instead of silently truncating", () => {
+  const res = parseAmount("1.123456789");
+  assert.equal(res.ok, false);
+  assert.equal(typeof res.error, "string");
+});
+
+test("parseAmount: rejects amounts below one base unit", () => {
+  // "0.00000001" would round to 0 base units and be rejected by the contract
+  const res = parseAmount("0.00000001");
+  assert.equal(res.ok, false);
+  assert.equal(typeof res.error, "string");
+  assert.equal(parseAmount("0").ok, false);
+});
+
+test("parseAmount: never throws on arbitrary input", () => {
+  for (const bad of ["", "   ", "1e3", "Infinity", "1_000", "0x10", "1.1.1"]) {
+    assert.doesNotThrow(() => parseAmount(bad));
+  }
 });
 
 // Tests for fromBaseUnits conversion from base units to human-readable

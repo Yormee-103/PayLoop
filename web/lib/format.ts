@@ -3,17 +3,59 @@ import { config } from "./config.ts";
 // Token amounts are integers in "stroops" of the token (7 decimals for USDC).
 // The UI works in human units; convert at the boundary.
 
+const AMOUNT_RE = /^\d+(\.\d{1,7})?$/;
+
+export type ParseAmountResult =
+  | { ok: true; value: bigint }
+  | { ok: false; error: string };
+
+/**
+ * Strictly parses a user-entered human amount into base units.
+ * Accepts only plain decimal numbers with up to `decimals` fractional digits.
+ * Rejects exponent notation, hex, separators, signs, and extra precision.
+ * The result must be at least one base unit.
+ */
+export function parseAmount(
+  input: string,
+  decimals: number = config.tokenDecimals
+): ParseAmountResult {
+  const s = (input ?? "").trim();
+  if (!s) return { ok: false, error: "Enter an amount." };
+  const re = new RegExp(`^\\d+(\\.\\d{1,${decimals}})?$`);
+  if (!re.test(s)) {
+    return {
+      ok: false,
+      error: `Use digits only, with at most ${decimals} decimal places (e.g. 12.5).`,
+    };
+  }
+  const value = toBaseUnitsUnchecked(s, decimals);
+  if (value <= 0n) {
+    return {
+      ok: false,
+      error: `Amount must be at least ${fromBaseUnits(1n, decimals)}.`,
+    };
+  }
+  return { ok: true, value };
+}
+
+function toBaseUnitsUnchecked(s: string, decimals: number): bigint {
+  const [whole, frac = ""] = s.split(".");
+  const fracPadded = (frac + "0".repeat(decimals)).slice(0, decimals);
+  return BigInt(whole || "0") * 10n ** BigInt(decimals) + BigInt(fracPadded || "0");
+}
+
 export function toBaseUnits(
   human: string | number,
   decimals: number = config.tokenDecimals
 ): bigint {
   const s = typeof human === "number" ? human.toString() : human.trim();
   if (!s) return 0n;
-  const [whole, frac = ""] = s.split(".");
-  const fracPadded = (frac + "0".repeat(decimals)).slice(0, decimals);
-  const sign = whole.startsWith("-") ? -1n : 1n;
-  const wholeAbs = whole.replace("-", "") || "0";
-  return sign * (BigInt(wholeAbs) * 10n ** BigInt(decimals) + BigInt(fracPadded || "0"));
+  if (!/^-?\d+(\.\d+)?$/.test(s)) {
+    throw new Error(`Invalid amount: "${s}"`);
+  }
+  const negative = s.startsWith("-");
+  const magnitude = toBaseUnitsUnchecked(negative ? s.slice(1) : s, decimals);
+  return negative ? -magnitude : magnitude;
 }
 
 export function fromBaseUnits(

@@ -4,6 +4,8 @@
 // users can start from a sensible description instead of typing from scratch.
 // Custom templates the user saves are persisted in localStorage.
 
+import { parseAmount } from "./format";
+
 export type InvoiceTemplate = {
   id: string;
   name: string;
@@ -48,14 +50,28 @@ function saveCustomTemplates(templates: InvoiceTemplate[]): void {
   }
 }
 
-export function saveCustomTemplate(name: string, description: string, amount: string): InvoiceTemplate[] {
+/**
+ * Saves a custom template. The amount is validated with parseAmount; an empty
+ * amount is allowed (stored as ""), but a non-empty invalid amount is rejected
+ * so that templates never carry values that would crash the Create page.
+ */
+export function saveCustomTemplate(
+  name: string,
+  description: string,
+  amount: string
+): { ok: true; templates: InvoiceTemplate[] } | { ok: false; error: string } {
+  const trimmedAmount = amount.trim();
+  if (trimmedAmount !== "") {
+    const parsed = parseAmount(trimmedAmount);
+    if (!parsed.ok) return { ok: false, error: parsed.error };
+  }
   const templates = loadCustomTemplates();
   const next = [
     ...templates,
-    { id: `custom-${Date.now()}`, name: name.trim(), description: description.trim(), amount: amount.trim() || "" },
+    { id: `custom-${Date.now()}`, name: name.trim(), description: description.trim(), amount: trimmedAmount },
   ];
   saveCustomTemplates(next);
-  return next;
+  return { ok: true, templates: next };
 }
 
 export function deleteCustomTemplate(id: string): InvoiceTemplate[] {

@@ -12,6 +12,7 @@ import {
   nativeToScVal,
   Operation,
   scValToNative,
+  Transaction,
   TransactionBuilder,
   xdr,
   rpc,
@@ -22,6 +23,13 @@ import { parseTokenBalance } from "./invoice-helpers";
 import { isValidInvoiceId } from "./invoice-helpers";
 import { buildFundInvoiceCall } from "./fund-invoice-call";
 import { signXdr } from "./wallet";
+import {
+  failedTransactionError,
+  PayLoopError,
+  submissionError,
+  timeoutError,
+  toPayLoopError,
+} from "./errors";
 import {
   createScanCache,
   scanInvoices,
@@ -202,7 +210,11 @@ export async function getInvoice(id: string): Promise<Invoice | null> {
     return raw ? decodeInvoice(raw as RawInvoice) : null;
   } catch (e) {
     if (errorMessage(e, "").includes("InvoiceNotFound")) return null;
-    throw e;
+    // The simulation reports the numeric code (`Error(Contract, #3)`), not the
+    // variant name, so also recognise it through the error mapper.
+    const mapped = toPayLoopError(e, { contractId: config.contractId });
+    if (mapped.code === "INVOICE_NOT_FOUND") return null;
+    throw mapped;
   }
 }
 
@@ -260,52 +272,85 @@ export async function getTokenBalance(
 
 // --- Write calls (simulate -> prepare -> sign -> submit) ------------------
 
+// How long to wait for a submitted transaction to appear on the ledger before
+// reporting it as unconfirmed (not failed).
+const CONFIRMATION_TIMEOUT_MS = 30_000;
+
 async function invokeSigned(
   sourceAddress: string,
   method: string,
   args: xdr.ScVal[],
 ): Promise<{ hash: string; returnValue: unknown }> {
   const srv = server();
-  const account = await srv.getAccount(sourceAddress);
+  const errorContext = { contractId: config.contractId };
 
-  const built = new TransactionBuilder(account, {
-    fee: BASE_FEE,
-    networkPassphrase: config.networkPassphrase,
-  })
-    .addOperation(contract().call(method, ...args))
-    .setTimeout(60)
-    .build();
+  // Stage 1: build, simulate and assemble. Nothing has been signed or sent, so
+  // any failure here is a definite "no transaction" and is mapped to plain text.
+  let prepared: Transaction;
+  try {
+    const account = await srv.getAccount(sourceAddress);
+    const built = new TransactionBuilder(account, {
+      fee: BASE_FEE,
+      networkPassphrase: config.networkPassphrase,
+    })
+      .addOperation(contract().call(method, ...args))
+      .setTimeout(60)
+      .build();
 
-  // Prepare = simulate + assemble auth/footprint/resource fees.
-  const prepared = await srv.prepareTransaction(built);
+    // Prepare = simulate + assemble auth/footprint/resource fees.
+    prepared = await srv.prepareTransaction(built);
+  } catch (e) {
+    throw toPayLoopError(e, errorContext);
+  }
+
+  // Stage 2: sign. `signXdr` throws a PayLoopError (e.g. USER_REJECTED).
   const signedXdr = await signXdr(prepared.toXDR());
   const signedTx = TransactionBuilder.fromXDR(
     signedXdr,
     config.networkPassphrase,
   );
+  // Known before submission, so even a lost response can point at the explorer.
+  const hash = signedTx.hash().toString("hex");
 
-  const sent = await srv.sendTransaction(signedTx);
+  // Stage 3: submit. From here on a thrown error does not mean the transaction
+  // was not applied, so it is reported as "unconfirmed", never as "failed".
+  let sent: Awaited<ReturnType<typeof srv.sendTransaction>>;
+  try {
+    sent = await srv.sendTransaction(signedTx);
+  } catch (e) {
+    throw timeoutError(hash, e);
+  }
   if (sent.status === "ERROR") {
-    throw new Error(
-      `Transaction submission failed: ${JSON.stringify(sent.errorResult)}`,
-    );
+    throw submissionError(sent.errorResult, hash);
+  }
+  if (sent.status === "TRY_AGAIN_LATER") {
+    throw new PayLoopError("NETWORK_BUSY", { cause: sent, txHash: hash });
   }
 
-  // Poll for confirmation.
-  let getResult = await srv.getTransaction(sent.hash);
+  // Stage 4: poll for confirmation. A poll that keeps coming back NOT_FOUND (or
+  // fails transiently) until the deadline says nothing about the outcome.
   const started = Date.now();
-  while (
-    getResult.status === rpc.Api.GetTransactionStatus.NOT_FOUND &&
-    Date.now() - started < 30_000
-  ) {
+  let getResult: rpc.Api.GetTransactionResponse | null = null;
+  let lastError: unknown;
+  while (Date.now() - started < CONFIRMATION_TIMEOUT_MS) {
+    try {
+      getResult = await srv.getTransaction(sent.hash);
+      lastError = undefined;
+      if (getResult.status !== rpc.Api.GetTransactionStatus.NOT_FOUND) break;
+    } catch (e) {
+      lastError = e;
+    }
     await new Promise((r) => setTimeout(r, 1500));
-    getResult = await srv.getTransaction(sent.hash);
   }
 
-  if (getResult.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
-    throw new Error(
-      `Transaction did not succeed (status: ${getResult.status}).`,
-    );
+  if (
+    !getResult ||
+    getResult.status === rpc.Api.GetTransactionStatus.NOT_FOUND
+  ) {
+    throw timeoutError(sent.hash, lastError);
+  }
+  if (getResult.status === rpc.Api.GetTransactionStatus.FAILED) {
+    throw failedTransactionError(getResult.resultXdr, sent.hash);
   }
 
   const returnValue = getResult.returnValue

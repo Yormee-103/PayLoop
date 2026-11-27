@@ -143,6 +143,8 @@ test("parseTokenBalance keeps a genuine zero and parses amounts", () => {
 test("parseTokenBalance throws instead of returning 0 for a missing value", () => {
   assert.throws(() => parseTokenBalance(null));
   assert.throws(() => parseTokenBalance(undefined));
+});
+
 test("isValidInvoiceId accepts digit-only ids up to u64::MAX", () => {
   assert.equal(isValidInvoiceId("1"), true);
   assert.equal(isValidInvoiceId("0"), true);

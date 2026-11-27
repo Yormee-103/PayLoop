@@ -7,7 +7,8 @@ import { ConnectPrompt } from "@/components/ConnectPrompt";
 import { Alert, Spinner, TxLink } from "@/components/ui";
 import { InvoicePreview } from "@/components/InvoiceDocument";
 import { createInvoice, getAllowedTokenIds } from "@/lib/contract";
-import { errorMessage } from "@/lib/async-resource";
+import { TxErrorAlert } from "@/components/TxErrorAlert";
+import { describeError, type ErrorView } from "@/lib/errors";
 import { dueDateError, todayDateInputValue } from "@/lib/invoice-helpers";
 import { toBaseUnits } from "@/lib/format";
 import { config, getTokenConfig, isConfigured, tokens } from "@/lib/config";
@@ -110,6 +111,8 @@ export default function CreatePage() {
   const [submitting, setSubmitting] = useState(false);
   const [preview, setPreview] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Failure of the create transaction itself (see lib/errors.ts).
+  const [txError, setTxError] = useState<ErrorView | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [customTemplates, setCustomTemplates] = useState<InvoiceTemplate[]>(
     () => loadCustomTemplates(),
@@ -249,6 +252,7 @@ export default function CreatePage() {
     }
     setSubmitting(true);
     setError(null);
+    setTxError(null);
     try {
       const dueUnix = dueDate
         ? BigInt(Math.floor(new Date(dueDate).getTime() / 1000))
@@ -276,7 +280,7 @@ export default function CreatePage() {
       setClientNickname("");
       removeSafeSessionStorageItem(DRAFT_STORAGE_KEY);
     } catch (e) {
-      setError(errorMessage(e, "Failed to create invoice."));
+      setTxError(describeError(e, { contractId: config.contractId }));
     } finally {
       setSubmitting(false);
     }
@@ -321,6 +325,7 @@ export default function CreatePage() {
       )}
 
       {error && <Alert kind="error">{error}</Alert>}
+      {txError && <TxErrorAlert view={txError} />}
 
       {!address ? (
         <ConnectPrompt message="Connect your wallet to create an invoice." />

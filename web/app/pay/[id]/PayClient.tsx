@@ -20,7 +20,8 @@ import {
   getTokenBalance,
   hasTokenTrustline,
 } from "@/lib/contract";
-import { errorMessage } from "@/lib/async-resource";
+import { TxErrorAlert } from "@/components/TxErrorAlert";
+import { describeError, type ErrorView } from "@/lib/errors";
 import {
   formatAmount,
   formatDate,
@@ -44,6 +45,8 @@ export default function PayClient({ id }: { id: string }) {
   // Errors from actions on this page (paying, copying). Load errors come from
   // the hook below.
   const [actionError, setActionError] = useState<string | null>(null);
+  // Failure of the payment transaction itself (see lib/errors.ts).
+  const [payError, setPayError] = useState<ErrorView | null>(null);
   const [paidHash, setPaidHash] = useState<string | null>(null);
   const [trusted, setTrusted] = useState<boolean | null>(null);
   const [receiptOpen, setReceiptOpen] = useState(false);
@@ -107,6 +110,7 @@ export default function PayClient({ id }: { id: string }) {
   async function pay() {
     if (!address || !invoice) return;
     setActionError(null);
+    setPayError(null);
     setPaying(true);
     try {
       // A connected wallet other than the named client (and other than the
@@ -118,16 +122,15 @@ export default function PayClient({ id }: { id: string }) {
       trackEvent("invoice_paid");
       await load();
     } catch (e) {
-      const raw = errorMessage(e, "");
-      // Translate the most common on-chain failure into plain language.
-      if (raw.includes("trustline entry is missing")) {
+      const view = describeError(e, { contractId: config.contractId });
+      if (view.code === "TRUSTLINE_MISSING") {
         setFreelancerReady(false);
-        setActionError(
-          `The freelancer hasn't enabled ${token.symbol} yet, so they can't receive this payment. Ask them to enable it, then try again.`,
-        );
-      } else {
-        setActionError(raw || "Payment failed.");
+        view.message = `The freelancer hasn't enabled ${token.symbol} yet, so they can't receive this payment. Ask them to enable it, then try again.`;
+      } else if (view.code === "ALREADY_PAID") {
+        // Someone else (or an earlier attempt) already paid; show the new state.
+        await load();
       }
+      setPayError(view);
     } finally {
       setPaying(false);
     }
@@ -298,6 +301,8 @@ export default function PayClient({ id }: { id: string }) {
             </div>
           </div>
         )}
+
+        {payError && <TxErrorAlert view={payError} />}
 
         {error && (
           <Alert kind="error">

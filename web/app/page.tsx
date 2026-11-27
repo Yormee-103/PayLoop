@@ -82,7 +82,7 @@ export default function Home() {
       <section className="card flex flex-col items-center gap-4 py-10 text-center">
         <h2 className="text-2xl font-bold">Ready to try it?</h2>
         <p className="max-w-md text-slate-400">
-          Connect a Freighter wallet on Stellar testnet, grab some test USDC, and
+          Connect a Stellar wallet on testnet, grab some test USDC, and
           run the full invoice-to-payout loop.
         </p>
         <Link href="/create" className="btn-primary">

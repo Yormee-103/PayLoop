@@ -312,7 +312,7 @@ export default function PayClient({ id }: { id: string }) {
           <>
             {!address ? (
               <button
-                onClick={connect}
+                onClick={openWalletPicker}
                 disabled={connecting}
                 className="btn-primary w-full"
               >

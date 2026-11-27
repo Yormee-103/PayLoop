@@ -1,5 +1,5 @@
-// Thin wrapper around Freighter so the rest of the app never imports the
-// wallet SDK directly. All calls are guarded for SSR (window undefined).
+// Wallet facade used by the app. Only this module imports concrete adapters,
+// so contract.ts and the UI never import a wallet SDK directly.
 
 import {
   isConnected,
@@ -68,20 +68,32 @@ export async function connectWallet(): Promise<string> {
   if (!res.isAllowed) {
     throw new Error("Wallet connection was declined.");
   }
-  const addr = await getAddress();
-  if (addr.error || !addr.address) {
-    throw new Error(addr.error || "Could not read wallet address.");
-  }
-  return addr.address;
 }
 
-// Signs a base64 XDR transaction envelope and returns the signed XDR.
-export async function signXdr(xdr: string): Promise<string> {
-  const res = await signTransaction(xdr, {
-    networkPassphrase: config.networkPassphrase,
-  });
-  if (res.error) {
-    throw new Error(res.error);
+export async function subscribeWalletChanges(
+  id: WalletId,
+  listener: (change: WalletChange) => void
+): Promise<Unsubscribe> {
+  const adapter = getWalletAdapter(id);
+  if (!adapter.subscribe) return () => {};
+  try {
+    return await adapter.subscribe(listener);
+  } catch {
+    return () => {};
   }
-  return res.signedTxXdr;
+}
+
+// contract.ts calls this unchanged. Guard against a wallet that reports a
+// different network before asking for a signature, so users get one clear,
+// wallet-agnostic message instead of a failed transaction.
+export async function signXdr(xdr: string): Promise<string> {
+  const adapter = getWalletAdapter(getActiveWalletId());
+  const network = await adapter.getNetwork().catch(() => null);
+  if (
+    network &&
+    !isExpectedNetwork(network.networkPassphrase, config.networkPassphrase)
+  ) {
+    throw new Error(WRONG_NETWORK_MESSAGE);
+  }
+  return adapter.signXdr(xdr);
 }

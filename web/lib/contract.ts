@@ -1,4 +1,4 @@
-// Contract interaction layer. Builds, simulates, signs (via Freighter), and
+// Contract interaction layer. Builds, simulates, signs (via the active wallet), and
 // submits Soroban transactions against the PayLoop invoice contract. Read-only
 // calls are simulated and never leave the browser as a real transaction.
 
@@ -399,7 +399,7 @@ export async function hasTokenTrustline(
 }
 
 // Builds a changeTrust op for the asset behind `tokenId`, signs it via
-// Freighter, and submits through Horizon.
+// the connected wallet, and submits through Horizon.
 export async function establishTokenTrustline(
   address: string,
   tokenId: string = config.tokenId,

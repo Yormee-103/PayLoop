@@ -7,6 +7,7 @@ import { useWallet } from "./WalletProvider";
 import { useTheme } from "./ThemeProvider";
 import { LogoMark } from "./LogoMark";
 import { shortAddress } from "@/lib/format";
+import { config } from "@/lib/config";
 
 // Minimal English fallback so this component has no dependency on the
 // locale modules. Missing keys fall back to the key-derived English text.
@@ -52,7 +53,16 @@ const links = [
 ];
 
 export function Navbar() {
-  const { address, connect, connecting, disconnect, error, clearError, installed } = useWallet();
+  const {
+    address,
+    walletName,
+    connecting,
+    disconnect,
+    error,
+    clearError,
+    openWalletPicker,
+    wrongNetwork,
+  } = useWallet();
   const { theme, toggle } = useTheme();
   const { t } = useLocale();
   const pathname = usePathname();
@@ -118,12 +128,16 @@ export function Navbar() {
               title={t("nav.disconnect")}
               className="btn-ghost font-mono text-xs"
             >
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  wrongNetwork ? "bg-amber-400" : "bg-emerald-400"
+                }`}
+              />
               {shortAddress(address)}
             </button>
           ) : (
             <button
-              onClick={connect}
+              onClick={openWalletPicker}
               disabled={connecting}
               className="btn-primary text-sm"
             >
@@ -175,7 +189,19 @@ export function Navbar() {
         </nav>
       )}
 
-      {/* Wallet connection error alert */}
+      {/* Wallet state banners */}
+      {wrongNetwork && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="border-t border-amber-500/20 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-100"
+        >
+          <div className="mx-auto max-w-5xl">
+            Your wallet is on another Stellar network. Switch it to {config.network} before
+            creating or paying an invoice.
+          </div>
+        </div>
+      )}
       {error && (
         <div
           role="alert"

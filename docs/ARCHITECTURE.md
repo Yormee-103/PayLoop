@@ -87,10 +87,10 @@ Next.js 15 App Router, React 19, TypeScript, Tailwind. Key modules:
 
 - `lib/config.ts` — all network/contract config from `NEXT_PUBLIC_*`, with the
   live testnet deployment baked in as defaults so a clone runs immediately.
-- `lib/wallet.ts` — thin Freighter wrapper; SSR-guarded; signs XDR.
+- `lib/wallet.ts` — wallet facade; SSR-guarded; selects an adapter (Freighter or Stellar Wallets Kit), persists the choice, and signs XDR.
 - `lib/contract.ts` — builds transactions. **Reads** are `simulateTransaction`
   only (never submitted). **Writes** go `prepareTransaction` (simulate + assemble
-  auth/footprint) → Freighter sign → `sendTransaction` → poll `getTransaction`.
+  auth/footprint) → active wallet sign → `sendTransaction` → poll `getTransaction`.
 - `lib/format.ts` — base-unit ↔ human conversion (7-decimal token math in `bigint`).
 - `components/WalletProvider.tsx` — React context; re-hydrates a prior session
   from `localStorage`.
@@ -118,7 +118,7 @@ Next.js 15 App Router, React 19, TypeScript, Tailwind. Key modules:
 
 ## Data flow: the core loop
 
-1. Freelancer connects Freighter, calls `create_invoice` → gets invoice id →
+1. Freelancer connects a supported wallet, calls `create_invoice` → gets invoice id →
    shares `/pay/<id>`.
 2. Client opens the link, connects the wallet named on the invoice, funds it.
    `fund_invoice` moves USDC client→freelancer atomically and marks it `Paid`.

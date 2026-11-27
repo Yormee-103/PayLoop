@@ -10,7 +10,7 @@ import { trackEvent } from "@/lib/analytics";
 import { errorMessage } from "@/lib/async-resource";
 
 // Detects whether the connected wallet trusts the USDC asset and, if not,
-// offers a one-click button to establish the trustline via Freighter. This
+// offers a one-click button to establish the trustline via the active wallet. This
 // removes the biggest onboarding footgun: without a trustline the faucet mint
 // and invoice payment both fail with a cryptic "trustline missing" error.
 export function TrustlineButton({

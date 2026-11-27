@@ -7,7 +7,8 @@ Stellar, cash out in Naira.
 
 - Next.js 15 + React 19 + TypeScript
 - Tailwind CSS
-- `@stellar/stellar-sdk` + `@stellar/freighter-api` for on-chain calls
+- `@stellar/stellar-sdk` for on-chain calls
+- `@stellar/freighter-api` + `@creit.tech/stellar-wallets-kit` for wallet adapters (Freighter, xBull, Albedo, Lobstr, Hana)
 - Vercel Analytics + Sentry for monitoring
 
 ## Local development
@@ -23,8 +24,8 @@ the app runs against the real contract with no config. Override via `.env.local`
 to point at a different deployment. The faucet button needs
 `USDC_ISSUER_SECRET` set server-side.
 
-You'll need the [Freighter](https://freighter.app) browser extension set to
-**Testnet**.
+You'll need a supported Stellar wallet set to **Testnet**: Freighter, xBull,
+Albedo, Lobstr or Hana. Choose it from the wallet picker when connecting.
 
 ## Environment variables
 
@@ -144,7 +145,7 @@ To upgrade deliberately:
 3. Change the version in `package.json` to the exact new version, then refresh
    the lockfile with `npm install --package-lock-only` and review the diff.
 4. Run `npm ci`, `npm run lint` and `npm run build`.
-5. Test by hand against testnet before merging: connect Freighter, create an
+5. Test by hand against testnet before merging: connect a supported wallet, create an
    invoice, fund it from a second wallet, and open History and Activity. These
    exercise simulate, sign and submit, and the read paths.
 

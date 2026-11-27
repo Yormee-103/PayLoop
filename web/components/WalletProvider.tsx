@@ -19,6 +19,8 @@ import {
 
 type WalletContextValue = WalletSnapshot & {
   connecting: boolean;
+  pickerOpen: boolean;
+  wrongNetwork: boolean;
   error: string | null;
   clearError: () => void;
   wrongNetwork: boolean;
@@ -40,6 +42,7 @@ const INITIAL: WalletSnapshot = {
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [wallet, setWallet] = useState<WalletSnapshot>(INITIAL);
   const [connecting, setConnecting] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isRemembered = useCallback(() => {
@@ -157,22 +160,37 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     markConnected(false);
   }, [markConnected]);
 
+  const closeWalletPicker = useCallback(() => {
+    setPickerOpen(false);
+  }, []);
+
+  const wrongNetwork = Boolean(
+    address && networkPassphrase && networkPassphrase !== config.networkPassphrase
+  );
+
   const value = useMemo(
     () => ({
       ...wallet,
       connecting,
+      pickerOpen,
+      wrongNetwork,
       error,
       clearError,
       wrongNetwork:
         isWrongNetwork(wallet.networkPassphrase) && Boolean(wallet.address),
       connect,
       disconnect,
+      openWalletPicker,
+      closeWalletPicker,
     }),
     [wallet, connecting, error, clearError, connect, disconnect],
   );
 
   return (
-    <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
+    <WalletContext.Provider value={value}>
+      {children}
+      <WalletPicker />
+    </WalletContext.Provider>
   );
 }
 

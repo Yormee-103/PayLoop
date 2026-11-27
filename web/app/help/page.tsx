@@ -59,24 +59,17 @@ export default function HelpPage() {
             q: "What do I need to use PayLoop?",
             a: (
               <>
-                A browser with the{" "}
-                <a
-                  href="https://freighter.app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-brand-300 hover:underline"
-                >
-                  Freighter
-                </a>{" "}
-                Stellar wallet extension installed, switched to Testnet
-                (Settings → Network → Test Net). Your wallet address is your
-                PayLoop account — there&apos;s no separate sign-up.
+                A supported Stellar wallet — Freighter, xBull, Albedo, Lobstr
+                or Hana — switched to Testnet. Browser extensions need to be
+                installed; web wallets such as Albedo work without one. Your
+                wallet address is your PayLoop account — there&apos;s no
+                separate sign-up.
               </>
             ),
           },
           {
             q: "How do I connect my wallet?",
-            a: "Click “Connect wallet” in the top-right of any page and approve in Freighter. The app remembers your connection until you disconnect.",
+            a: "Click “Connect wallet” in the top-right of any page, choose a wallet, and approve the request there. The app remembers your choice until you disconnect.",
           },
           {
             q: "Is this real money?",
@@ -90,7 +83,7 @@ export default function HelpPage() {
         items={[
           {
             q: "What is “Enable USDC” and why is it required?",
-            a: "Enable USDC establishes a trustline so your wallet is allowed to hold USDC. Every wallet must do it once before it can receive a payment (as a freelancer) or pay an invoice (as a client). Without it, payments fail with a trustline error. Open the Dashboard → Enable USDC → approve in Freighter.",
+            a: "Enable USDC establishes a trustline so your wallet is allowed to hold USDC. Every wallet must do it once before it can receive a payment (as a freelancer) or pay an invoice (as a client). Without it, payments fail with a trustline error. Open the Dashboard → Enable USDC → approve in your wallet.",
           },
           {
             q: "How do I get test USDC?",
@@ -108,7 +101,7 @@ export default function HelpPage() {
         items={[
           {
             q: "How do I create an invoice?",
-            a: "New invoice → choose a template or type your own description → enter your client's wallet address and the amount (in USDC) → set an optional due date → preview it → Create invoice → approve one transaction in Freighter. The invoice is recorded on-chain.",
+            a: "New invoice → choose a template or type your own description → enter your client's wallet address and the amount (in USDC) → set an optional due date → preview it → Create invoice → approve one transaction in your wallet. The invoice is recorded on-chain.",
           },
           {
             q: "What are invoice templates?",
@@ -155,8 +148,8 @@ export default function HelpPage() {
             a: "The client's wallet hasn't Enabled USDC. Have them open the Dashboard → Enable USDC → approve, then retry the payment.",
           },
           {
-            q: "Freighter says I'm on the wrong network",
-            a: "Switch Freighter to Testnet (Settings → Network → Test Net). PayLoop currently runs on the Stellar Testnet only.",
+            q: "My wallet says I'm on the wrong network",
+            a: "Switch your wallet to Testnet (for extensions, Settings → Network → Test Net). PayLoop currently runs on the Stellar Testnet only.",
           },
           {
             q: "My balance looks wrong",

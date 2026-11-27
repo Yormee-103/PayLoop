@@ -14,6 +14,7 @@ import {
   todayDateInputValue,
 } from "@/lib/invoice-helpers";
 import { toBaseUnits } from "@/lib/format";
+import { dueDateError, todayDateInputValue } from "@/lib/invoice-helpers";
 import { config, getTokenConfig, isConfigured, tokens } from "@/lib/config";
 import { useTokenMeta } from "@/lib/use-token-meta";
 import { trackEvent } from "@/lib/analytics";
@@ -637,7 +638,7 @@ export default function CreatePage() {
             </button>
           </div>
           <p className="text-center text-xs text-slate-500">
-            You&apos;ll approve one transaction in Freighter to record the
+            You&apos;ll approve one transaction in your wallet to record the
             invoice.
           </p>
         </form>

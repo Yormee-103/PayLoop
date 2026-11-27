@@ -38,7 +38,7 @@ type Result = { id: string; hash: string };
 const DRAFT_STORAGE_KEY = "payloop.create.draft";
 
 export default function CreatePage() {
-  const { address } = useWallet();
+  const { address, wrongNetwork } = useWallet();
   const [client, setClient] = useState("");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
@@ -623,7 +623,8 @@ export default function CreatePage() {
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || wrongNetwork}
+              title={wrongNetwork ? "Switch Freighter to Testnet first" : undefined}
               className="btn-primary flex-1"
             >
               {submitting ? (

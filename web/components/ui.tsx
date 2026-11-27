@@ -58,6 +58,8 @@ export function Alert({
     <div
       className={`rounded-lg border px-4 py-3 text-sm ${styles}`}
       role="alert"
+      role={kind === "error" ? "alert" : "status"}
+      aria-live={kind === "error" ? "assertive" : "polite"}
     >
       {children}
     </div>

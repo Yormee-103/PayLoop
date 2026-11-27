@@ -4,6 +4,7 @@ import "./globals.css";
 import { WalletProvider } from "@/components/WalletProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Navbar } from "@/components/Navbar";
+import { WrongNetworkBanner } from "@/components/WrongNetworkBanner";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { siteUrl } from "@/lib/site";
@@ -52,6 +53,7 @@ export default function RootLayout({
               Skip to content
             </a>
             <Navbar />
+            <WrongNetworkBanner />
             <main
               id="main"
               tabIndex={-1}

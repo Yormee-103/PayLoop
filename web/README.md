@@ -72,6 +72,7 @@ Without a Redis/KV backend, rate limiting is in-memory and best-effort (resets o
 - `/withdraw` — mocked USDC→Naira off-ramp
 - `/activity` — public on-chain feed of every invoice + usage stats
 - `/api/faucet` — server route that mints test USDC (holds the issuer key)
+- `/api/health` — uptime probe for Soroban RPC and the invoice contract
 - `/api/feedback` — collects user feedback, forwards to an optional webhook
 
 ## The faucet
@@ -79,6 +80,38 @@ Without a Redis/KV backend, rate limiting is in-memory and best-effort (resets o
 `/api/faucet` mints test USDC to a wallet by calling `mint` on the SAC as the
 asset issuer. The issuer secret stays server-side. In production this route
 would be removed — it exists only so demo users can get testnet balances.
+
+Only `G...` account addresses are accepted; `C...` contract addresses are
+rejected with 400. Before minting, the route asks Horizon whether the wallet
+already trusts the configured test-USDC asset. A missing trustline returns 409
+with guidance to use **Enable USDC** on the dashboard; a Horizon outage returns
+502 rather than blaming the wallet. Send statuses are handled explicitly:
+`PENDING` is polled, `DUPLICATE` is checked for confirmation, `TRY_AGAIN_LATER`
+returns 503 with `Retry-After`, and all errors use fixed generic messages with
+no RPC details, XDR or secrets.
+
+## Health check
+
+`GET /api/health` reports whether the latest Soroban ledger is available and
+whether the invoice contract's `version()` read can be simulated. It returns:
+
+```json
+{
+  "status": "healthy",
+  "checks": {
+    "ledger": { "ok": true, "sequence": 12345 },
+    "contract": { "ok": true, "version": "v1" }
+  }
+}
+```
+
+A failed check returns `503` with `"status": "degraded"`; both checks are always
+attempted. Responses use `Cache-Control: no-store`, contain no error text, and
+never read any server-only secret.
+
+```bash
+curl -i http://localhost:3000/api/health
+```
 
 ## The Naira off-ramp is mocked
 
@@ -105,6 +138,7 @@ To upgrade deliberately:
    ```
 
    (`current_protocol_version` is what the network runs now.)
+
 2. Read the SDK release notes for the target version and confirm it supports
    that protocol.
 3. Change the version in `package.json` to the exact new version, then refresh

@@ -65,15 +65,21 @@ the issue before public disclosure.
 
 ## Notes for reviewers of this contract
 
-- The contract is deliberately minimal: single initializer, no admin functions
-  after `initialize`, fixed payment token, two-state invoice lifecycle.
+- The contract is deliberately minimal: single initializer (the constructor,
+  run atomically with deployment), no admin functions after deployment,
+  fixed payment token, two-state invoice lifecycle.
   Security-relevant properties (who can create, who must authorize funding,
   double-payment rejection, balance pre-check) are defined in
   [contracts/invoice/README.md](contracts/invoice/README.md#entrypoints) and
   enforced in `contracts/invoice/src/lib.rs`.
-- Only the client named on an invoice can fund it: `fund_invoice` requires
-  authorization from `invoice.client` and transfers from that address.
-  Third-party funding is not supported; any such change would be a separate
-  product decision.
+- Funding authorization: the default `fund_invoice` entrypoint requires the
+  named client's own signature. `fund_invoice_as_payer` is the deliberate opt-in
+  for a company treasury or agency paying from a different wallet: the supplied
+  `payer` must authorize both the entrypoint and the nested token transfer, and
+  the `InvoicePaid` event records that actual payer as a topic. The invoice's
+  named client never changes, and the freelancer cannot pay their own invoice
+  through this path. Both funding paths have `MockAuth` tests covering missing
+  and impostor signatures.
 - Testnet-only shared-state caveats anyone can verify on-chain: the faucet
-  mints freely (test asset). This does not imply mainnet equivalence.
+  mints freely (test asset), so testnet balances carry no mainnet value. This
+  does not imply mainnet equivalence.

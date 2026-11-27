@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useWallet } from "./WalletProvider";
 import { Spinner } from "./ui";
 import { errorMessage } from "@/lib/async-resource";
+import { Modal } from "./Modal";
 
 // Floating feedback button + panel, mounted app-wide. Posts to /api/feedback.
 // Required for the "basic user feedback collection" submission item; kept
@@ -70,19 +71,14 @@ export function FeedbackWidget() {
         💬 Feedback
       </button>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Send feedback"
-          onClick={reset}
-        >
-          <div
-            className="card w-full max-w-md space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
+      <Modal
+        open={open}
+        onClose={reset}
+        label="Send feedback"
+        backdropClassName="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
+        panelClassName="card w-full max-w-md space-y-4"
+      >
+        <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold">Share feedback</h2>
               <button
                 onClick={reset}
@@ -171,11 +167,9 @@ export function FeedbackWidget() {
                     "Send feedback"
                   )}
                 </button>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
+          </form>
+        )}
+      </Modal>
     </>
   );
 }

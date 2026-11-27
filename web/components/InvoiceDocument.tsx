@@ -13,6 +13,7 @@ import {
 import { useTokenMeta } from "@/lib/use-token-meta";
 import { StatusBadge } from "./ui";
 import { LogoMark } from "./LogoMark";
+import { Modal } from "./Modal";
 
 // A clean, self-contained invoice sheet. Used for (a) the pre-send preview on
 // the create page and (b) PDF export via the browser's print-to-PDF — the
@@ -189,51 +190,37 @@ export function InvoicePreview({
     };
   }, [open, printTitle]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
+  // Escape and focus handling are owned by Modal, so no duplicate listener here.
   if (!open || !invoice) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Invoice preview"
-      onClick={onClose}
+    <Modal
+      open={open}
+      onClose={onClose}
+      label="Invoice preview"
+      panelClassName="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto"
     >
-      <div
-        className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="print-area">
-          <InvoiceDocument invoice={invoice} txHash={txHash} />
-        </div>
-
-        <div className="flex flex-wrap justify-end gap-2 print:hidden">
-          <button onClick={onClose} className="btn-ghost text-sm">
-            Edit
-          </button>
-          <button onClick={() => window.print()} className="btn-ghost text-sm">
-            ⬇ Save as PDF
-          </button>
-          {onConfirm && (
-            <button
-              onClick={onConfirm}
-              disabled={confirming}
-              className="btn-primary text-sm"
-            >
-              {confirming ? "Creating…" : confirmLabel}
-            </button>
-          )}
-        </div>
+      <div className="print-area">
+        <InvoiceDocument invoice={invoice} txHash={txHash} />
       </div>
-    </div>
+
+      <div className="flex flex-wrap justify-end gap-2 print:hidden">
+        <button onClick={onClose} className="btn-ghost text-sm">
+          Edit
+        </button>
+        <button onClick={() => window.print()} className="btn-ghost text-sm">
+          ⬇ Save as PDF
+        </button>
+        {onConfirm && (
+          <button
+            onClick={onConfirm}
+            disabled={confirming}
+            className="btn-primary text-sm"
+          >
+            {confirming ? "Creating…" : confirmLabel}
+          </button>
+        )}
+      </div>
+    </Modal>
   );
 }

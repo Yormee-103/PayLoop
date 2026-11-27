@@ -174,6 +174,7 @@ export default function HistoryPage() {
             <button
               key={s}
               onClick={() => updateFilters({ ...filters, status: s })}
+              aria-pressed={status === s}
               className={`btn-ghost text-xs ${
                 status === s ? "ring-1 ring-brand-400" : ""
               }`}
@@ -186,6 +187,7 @@ export default function HistoryPage() {
             <button
               key={r}
               onClick={() => updateFilters({ ...filters, role: r })}
+              aria-pressed={role === r}
               className={`btn-ghost text-xs ${
                 role === r ? "ring-1 ring-brand-400" : ""
               }`}
@@ -201,6 +203,7 @@ export default function HistoryPage() {
         <button
           onClick={load}
           disabled={loading}
+          aria-label="Refresh invoices"
           className="btn-ghost ml-auto text-xs"
         >
           {loading ? <Spinner /> : "Refresh"}

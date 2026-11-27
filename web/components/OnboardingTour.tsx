@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Modal } from "./Modal";
 
 // First-run guided tour + replayable walkthrough (navbar "?"). Opens
 // automatically once per browser, and can be reopened anytime via the
@@ -62,24 +63,17 @@ export function OnboardingTour() {
     }
   }
 
-  if (!open) return null;
-
   const s = steps[step];
   const isLast = step === steps.length - 1;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Welcome to PayLoop"
-      onClick={close}
+    <Modal
+      open={open}
+      onClose={close}
+      label="Welcome to PayLoop"
+      panelClassName="card w-full max-w-md space-y-4"
     >
-      <div
-        className="card w-full max-w-md space-y-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between">
           <span className="badge bg-brand-500/15 text-brand-200">
             Step {step + 1} of {steps.length}
           </span>
@@ -138,12 +132,11 @@ export function OnboardingTour() {
           </div>
         </div>
 
-        {s.href && s.cta && (
-          <Link href={s.href} onClick={close} className="btn-ghost w-full text-sm">
-            {s.cta} →
-          </Link>
-        )}
-      </div>
-    </div>
+      {s.href && s.cta && (
+        <Link href={s.href} onClick={close} className="btn-ghost w-full text-sm">
+          {s.cta} →
+        </Link>
+      )}
+    </Modal>
   );
 }

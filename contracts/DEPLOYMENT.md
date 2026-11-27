@@ -1,7 +1,10 @@
 # Contract deployment — Stellar Testnet
 
 This walks through building the PayLoop invoice contract, issuing a **test USDC**
-token, deploying, and initializing. Commands assume the `stellar` CLI (v27+).
+token, and deploying it. Initialization runs atomically with deployment
+through the contract constructor, so there is no separate initialize step
+and no window where someone else could initialize the fresh instance.
+Commands assume the `stellar` CLI (v27+).
 
 > The resulting addresses go into `web/.env.local` (see `web/.env.example`) and
 > into the root `README.md` deployment table.
@@ -75,29 +78,23 @@ stellar contract asset deploy \
 
 Record the SAC address as `TOKEN_ID`.
 
-## 3. Deploy the invoice contract
+## 3. Deploy the invoice contract (constructor sets admin and token)
+
+The admin and payment token are passed as constructor arguments on the
+deploy command itself, so they are set inside the deployment transaction.
+Nobody can initialize the instance first: there is no separate step to race.
 
 ```bash
 stellar contract deploy \
   --wasm target/wasm32v1-none/release/payloop_invoice.wasm \
   --source deployer \
-  --network testnet
+  --network testnet \
+  -- --admin $(stellar keys address deployer) \
+  --payment_token TOKEN_ID
 # -> prints the contract address  (CONTRACT_ID)
 ```
 
-## 4. Initialize
-
-```bash
-stellar contract invoke \
-  --id CONTRACT_ID \
-  --source deployer \
-  --network testnet \
-  -- initialize \
-  --admin $(stellar keys address deployer) \
-  --payment_token TOKEN_ID
-```
-
-## 5. Record addresses
+## 4. Record addresses
 
 | Key | Value |
 | --- | --- |
@@ -107,7 +104,7 @@ stellar contract invoke \
 | `NEXT_PUBLIC_RPC_URL` | `https://soroban-testnet.stellar.org` |
 | `NEXT_PUBLIC_NETWORK_PASSPHRASE` | `Test SDF Network ; September 2015` |
 
-## 6. Faucet for onboarded users (mint test USDC)
+## 5. Faucet for onboarded users (mint test USDC)
 
 The app exposes a "Get test USDC" button that calls a backend mint. That backend
 uses the `usdc-issuer` key to mint to a user address:

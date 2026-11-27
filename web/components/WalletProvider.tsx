@@ -8,16 +8,20 @@ import {
   useMemo,
   useState,
 } from "react";
-import { connectWallet, detectWallet } from "@/lib/wallet";
+import { connectWallet, detectWallet, watchWallet } from "@/lib/wallet";
 import { errorMessage } from "@/lib/async-resource";
+import {
+  applyWalletChange,
+  isWrongNetwork,
+  type WalletChange,
+  type WalletSnapshot,
+} from "@/lib/wallet-state";
 
-type WalletContextValue = {
-  address: string | null;
-  network: string | null;
-  installed: boolean;
+type WalletContextValue = WalletSnapshot & {
   connecting: boolean;
   error: string | null;
   clearError: () => void;
+  wrongNetwork: boolean;
   connect: () => Promise<void>;
   disconnect: () => void;
 };
@@ -26,29 +30,93 @@ const WalletContext = createContext<WalletContextValue | null>(null);
 
 const STORAGE_KEY = "payloop.wallet.connected";
 
+const INITIAL: WalletSnapshot = {
+  address: null,
+  network: null,
+  networkPassphrase: null,
+  installed: true,
+};
+
 export function WalletProvider({ children }: { children: React.ReactNode }) {
-  const [address, setAddress] = useState<string | null>(null);
-  const [network, setNetwork] = useState<string | null>(null);
-  const [installed, setInstalled] = useState(true);
+  const [wallet, setWallet] = useState<WalletSnapshot>(INITIAL);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // On mount, re-hydrate if the user previously connected.
+  const isRemembered = useCallback(() => {
+    try {
+      return Boolean(localStorage.getItem(STORAGE_KEY));
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const markConnected = useCallback((connected: boolean) => {
+    try {
+      if (connected) localStorage.setItem(STORAGE_KEY, "1");
+      else localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Storage can be blocked; in-memory wallet state still works.
+    }
+  }, []);
+
+  // On mount, re-hydrate if the user previously connected, then keep watching
+  // Freighter for account, network and disconnect changes.
   useEffect(() => {
     let active = true;
+    let stopWatching: (() => void) | null = null;
+
+    const refresh = () => {
+      if (!active) return;
+      void detectWallet().then((state) => {
+        if (!active) return;
+        setWallet((current) => {
+          const result = applyWalletChange(current, {
+            address: isRemembered() ? state.address ?? "" : "",
+            network: state.network ?? "",
+            networkPassphrase: state.networkPassphrase ?? "",
+          });
+          if (result.changed) markConnected(result.connected);
+          return result.next;
+        });
+      });
+    };
+
     (async () => {
       const state = await detectWallet();
       if (!active) return;
-      setInstalled(state.installed);
-      if (state.address && localStorage.getItem(STORAGE_KEY)) {
-        setAddress(state.address);
-        setNetwork(state.network);
-      }
+      const remembered = isRemembered();
+      setWallet((current) => ({
+        ...current,
+        installed: state.installed,
+        address: remembered ? state.address : null,
+        network: remembered ? state.network : null,
+        networkPassphrase: remembered ? state.networkPassphrase : null,
+      }));
+
+      const onChange = (change: WalletChange) => {
+        if (!active) return;
+        setWallet((current) => {
+          const result = applyWalletChange(current, {
+            ...change,
+            address: isRemembered() ? change.address : "",
+          });
+          if (result.changed || result.next.address !== current.address) {
+            markConnected(result.connected);
+          }
+          return result.next;
+        });
+      };
+
+      stopWatching = watchWallet(onChange);
+      window.addEventListener("focus", refresh);
     })();
+
     return () => {
       active = false;
+      stopWatching?.();
+      window.removeEventListener("focus", refresh);
     };
-  }, []);
+  }, [isRemembered, markConnected]);
 
   const connect = useCallback(async () => {
     setConnecting(true);
@@ -56,53 +124,51 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     try {
       const addr = await connectWallet();
       const state = await detectWallet();
-      setAddress(addr);
-      setNetwork(state.network);
-      setInstalled(true);
-      localStorage.setItem(STORAGE_KEY, "1");
+      setWallet({
+        installed: true,
+        address: addr,
+        network: state.network,
+        networkPassphrase: state.networkPassphrase,
+      });
+      markConnected(true);
     } catch (e) {
       const message = errorMessage(e, "Failed to connect wallet.");
       setError(message);
       if (message.toLowerCase().includes("not found")) {
-        setInstalled(false);
+        setWallet((current) => ({ ...current, installed: false }));
       }
     } finally {
       setConnecting(false);
     }
-  }, []);
+  }, [markConnected]);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
   const disconnect = useCallback(() => {
-    setAddress(null);
-    setNetwork(null);
+    setWallet((current) => ({
+      ...current,
+      address: null,
+      network: null,
+      networkPassphrase: null,
+    }));
     setError(null);
-    localStorage.removeItem(STORAGE_KEY);
-  }, []);
+    markConnected(false);
+  }, [markConnected]);
 
   const value = useMemo(
     () => ({
-      address,
-      network,
-      installed,
+      ...wallet,
       connecting,
       error,
       clearError,
+      wrongNetwork:
+        isWrongNetwork(wallet.networkPassphrase) && Boolean(wallet.address),
       connect,
       disconnect,
     }),
-    [
-      address,
-      network,
-      installed,
-      connecting,
-      error,
-      clearError,
-      connect,
-      disconnect,
-    ],
+    [wallet, connecting, error, clearError, connect, disconnect],
   );
 
   return (

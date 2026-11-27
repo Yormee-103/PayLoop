@@ -33,7 +33,7 @@ Locked design decisions are recorded as
 
 Rust / `soroban-sdk` 27. State is keyed by an enum `DataKey`:
 
-- `Admin`, `DefaultToken`, `NextId` — instance storage set at `initialize`.
+- `Admin`, `DefaultToken`, `NextId` — instance storage set by the constructor at deployment.
 - `Invoice(u64)` — each invoice struct, persistent storage.
 - `History(Address)` — per-freelancer list of invoice ids, persistent.
 - `ClientHistory(Address)` — per-client list of invoice ids, persistent
@@ -43,7 +43,7 @@ Entry points:
 
 | Function                                                            | Auth       | Effect                                                                                                                                                                                  |
 | ------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `initialize(admin, payment_token)`                                  | admin      | one-time; sets default token, allowlist and id counter; admin can only grow the allowlist afterwards                                                                                    |
+| `__constructor(admin, payment_token)`                               | deployer (deployment transaction) | runs once with deployment; sets default token, allowlist and id counter; admin can only grow the allowlist afterwards                                                                 |
 | `add_allowed_token(admin, token)`                                   | admin      | adds a token to the allowlist (append-only)                                                                                                                                              |
 | `create_invoice(freelancer, client, amount, description, due_date)` | freelancer | default-token variant; rejects non-positive amounts, self-directed invoices, empty descriptions; records a `Pending` invoice, appends to history, emits `InvoiceCreated`, returns id     |
 | `create_invoice_with_token(..., token)`                             | freelancer | same, with an explicit allowlisted token stored on the invoice (`TokenNotAllowed` otherwise)                                                                                            |
@@ -55,15 +55,16 @@ Entry points:
 | `get_client_history(client)`                                        | — (read)   | reads the per-client list of invoice ids (`ClientHistory`)                                                                                                                              |
 | `default_token_address()` / `get_allowed_tokens()` / `version()`    | — (read)   | metadata                                                                                                                                                                                |
 
-Errors are a typed `contracterror` enum (`NotInitialized`, `AlreadyInitialized`,
+Errors are a typed `contracterror` enum (`NotInitialized`,
 `InvoiceNotFound`, `AlreadyPaid`, `InvalidAmount`, and — appended after the
 v1 testnet deployment, keeping codes 1–5 wire-compatible —
 `InvalidDescription`, `InvalidParties`, `InsufficientBalance`, `TokenNotAllowed`).
+(`AlreadyInitialized` was removed with the `initialize` entrypoint.)
 
-Twenty-three unit tests in `contracts/invoice/src/test.rs` cover the
+The unit tests in `contracts/invoice/src/test.rs` cover the
 create→fund→paid loop, history ordering and empty-history, double-funding
 rejection, non-positive amounts, missing invoices, timestamps,
-double-initialize, sequential id allocation, self-directed invoices, empty
+constructor setup and the deployment-hijack scenario, sequential id allocation, self-directed invoices, empty
 descriptions, exact vs. short client balances, and — without `mock_all_auths`
 — the authorization matrix (freelancer auth required to create, client auth
 required to fund, an impostor's auth rejected, no-auth rejections, and the

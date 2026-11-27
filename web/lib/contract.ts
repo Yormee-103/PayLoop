@@ -20,6 +20,7 @@ import { config, getTokenConfig, tokens } from "./config";
 import { errorMessage } from "./async-resource";
 import { parseTokenBalance } from "./invoice-helpers";
 import { isValidInvoiceId } from "./invoice-helpers";
+import { buildFundInvoiceCall } from "./fund-invoice-call";
 import { signXdr } from "./wallet";
 import {
   createScanCache,
@@ -345,12 +346,18 @@ export async function createInvoice(params: {
 }
 
 export async function fundInvoice(
-  clientAddress: string,
+  payerAddress: string,
   invoiceId: string,
+  thirdParty = false,
 ): Promise<{ hash: string }> {
-  const { hash } = await invokeSigned(clientAddress, "fund_invoice", [
-    nativeToScVal(BigInt(invoiceId), { type: "u64" }),
-  ]);
+  // Default: the named client signs and pays. A different wallet signs the
+  // dedicated entrypoint, which records it as the actual payer on the event.
+  const { method, args } = buildFundInvoiceCall(
+    payerAddress,
+    invoiceId,
+    thirdParty,
+  );
+  const { hash } = await invokeSigned(payerAddress, method, args);
   return { hash };
 }
 

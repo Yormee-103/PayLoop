@@ -635,6 +635,7 @@ fn paid_event_records_actual_payer() {
             payer: payer.clone(),
             id,
             amount: 1_000_000i128,
+            token: s.token.clone(),
             paid_at: 1_700_000_000,
         }
         .to_xdr(&s.env, &s.contract.address)],
@@ -1188,6 +1189,156 @@ fn create_invoice_uses_default_token_when_not_specified() {
     // Verify invoice used the default token
     let inv = s.contract.get_invoice(&id);
     assert_eq!(inv.token, s.token);
+}
+
+// --- Pagination and Count Tests (Issue #152) --------------------------------
+
+#[test]
+fn get_client_invoice_range_respects_bounds() {
+    let s = setup();
+    let freelancer1 = Address::generate(&s.env);
+    let freelancer2 = Address::generate(&s.env);
+    let client = Address::generate(&s.env);
+
+    // Create 5 invoices for the same client across different freelancers.
+    for i in 1..=3 {
+        invoice_with_id(&s, &freelancer1, &client, 1_000_000i128 * i);
+    }
+    for i in 4..=5 {
+        invoice_with_id(&s, &freelancer2, &client, 1_000_000i128 * i);
+    }
+
+    // First page (start=0, len=2)
+    let range = s.contract.get_client_invoice_range(&client, &0, &2);
+    assert_eq!(range.len(), 2);
+    assert_eq!(range.get(0).unwrap().id, 1);
+    assert_eq!(range.get(1).unwrap().id, 2);
+
+    // Second page (start=2, len=2)
+    let range = s.contract.get_client_invoice_range(&client, &2, &2);
+    assert_eq!(range.len(), 2);
+    assert_eq!(range.get(0).unwrap().id, 3);
+    assert_eq!(range.get(1).unwrap().id, 4);
+
+    // Final partial page (start=4, len=2)
+    let range = s.contract.get_client_invoice_range(&client, &4, &2);
+    assert_eq!(range.len(), 1);
+    assert_eq!(range.get(0).unwrap().id, 5);
+
+    // Beyond range (start=5, len=2)
+    let range = s.contract.get_client_invoice_range(&client, &5, &2);
+    assert_eq!(range.len(), 0);
+
+    // Far beyond range (start=10, len=5)
+    let range = s.contract.get_client_invoice_range(&client, &10, &5);
+    assert_eq!(range.len(), 0);
+}
+
+#[test]
+fn get_client_invoice_range_for_unknown_client_is_empty() {
+    let s = setup();
+    let freelancer = Address::generate(&s.env);
+    let client = Address::generate(&s.env);
+    let stranger = Address::generate(&s.env);
+
+    invoice_with_id(&s, &freelancer, &client, 1_000_000);
+
+    let range = s.contract.get_client_invoice_range(&stranger, &0, &10);
+    assert_eq!(range.len(), 0);
+}
+
+#[test]
+fn per_address_invoice_counts_track_totals() {
+    let s = setup();
+    let freelancer1 = Address::generate(&s.env);
+    let freelancer2 = Address::generate(&s.env);
+    let client1 = Address::generate(&s.env);
+    let client2 = Address::generate(&s.env);
+    let stranger = Address::generate(&s.env);
+
+    // Initial counts for unreferenced addresses must be zero.
+    assert_eq!(s.contract.freelancer_invoice_count(&freelancer1), 0);
+    assert_eq!(s.contract.client_invoice_count(&client1), 0);
+    assert_eq!(s.contract.freelancer_invoice_count(&stranger), 0);
+    assert_eq!(s.contract.client_invoice_count(&stranger), 0);
+
+    // Create 3 invoices: freelancer1 -> client1
+    for _ in 0..3 {
+        invoice_with_id(&s, &freelancer1, &client1, 1_000_000);
+    }
+
+    // Create 2 invoices: freelancer1 -> client2
+    for _ in 0..2 {
+        invoice_with_id(&s, &freelancer1, &client2, 2_000_000);
+    }
+
+    // Create 1 invoice: freelancer2 -> client1
+    invoice_with_id(&s, &freelancer2, &client1, 3_000_000);
+
+    // Verify freelancer counts.
+    assert_eq!(s.contract.freelancer_invoice_count(&freelancer1), 5);
+    assert_eq!(s.contract.freelancer_invoice_count(&freelancer2), 1);
+
+    // Verify client counts.
+    assert_eq!(s.contract.client_invoice_count(&client1), 4);
+    assert_eq!(s.contract.client_invoice_count(&client2), 2);
+
+    // Stranger remains zero.
+    assert_eq!(s.contract.freelancer_invoice_count(&stranger), 0);
+    assert_eq!(s.contract.client_invoice_count(&stranger), 0);
+}
+
+// --- Event Schema Tests (Issue #153) ----------------------------------------
+
+#[test]
+fn event_emission_includes_token_and_due_date() {
+    let s = setup();
+    let freelancer = Address::generate(&s.env);
+    let client = Address::generate(&s.env);
+    let due_date: u64 = 1_800_000_000;
+    let amount: i128 = 2_500_000;
+
+    s.token_admin.mint(&client, &amount);
+
+    let id = s.contract.create_invoice(
+        &freelancer,
+        &client,
+        &amount,
+        &String::from_str(&s.env, "Event verification invoice"),
+        &due_date,
+    );
+    assert_eq!(id, 1);
+
+    // Filter events emitted by create_invoice for our contract
+    let contract_events = s.env.events().all().filter_by_contract(&s.contract.address);
+    let raw = contract_events.events();
+    assert_eq!(raw.len(), 1);
+
+    // Verify InvoiceCreated event structure: topics and map data
+    let soroban_sdk::xdr::ContractEventBody::V0(v0) = &raw[0].body;
+    assert_eq!(v0.topics.len(), 3); // Symbol("invoice_created"), freelancer, client
+    match &v0.data {
+        soroban_sdk::xdr::ScVal::Map(Some(sc_map)) => {
+            assert_eq!(sc_map.len(), 4); // id, amount, token, due_date
+        }
+        other => panic!("Unexpected data ScVal: {:?}", other),
+    }
+
+    // Fund the invoice and verify InvoicePaid event
+    s.contract.fund_invoice(&id);
+
+    let contract_events_after = s.env.events().all().filter_by_contract(&s.contract.address);
+    let raw_after = contract_events_after.events();
+    assert_eq!(raw_after.len(), 1);
+
+    let soroban_sdk::xdr::ContractEventBody::V0(v0_paid) = &raw_after[0].body;
+    assert_eq!(v0_paid.topics.len(), 4); // Symbol("invoice_paid"), freelancer, client, payer
+    match &v0_paid.data {
+        soroban_sdk::xdr::ScVal::Map(Some(sc_map)) => {
+            assert_eq!(sc_map.len(), 4); // id, amount, token, paid_at
+        }
+        other => panic!("Unexpected data ScVal: {:?}", other),
+    }
 }
 
 // ---------------------------------------------------------------------------

@@ -52,35 +52,41 @@ no funds movement** — do not build against it.
 | `History(freelancer)` | persistent | `create_invoice` | per-freelancer ordered list of invoice ids |
 | `ClientHistory(client)` | persistent | `create_invoice` | per-client ordered list of invoice ids |
 
-Known scaling limitation: `get_invoice_history` loads every invoice struct for
-one freelancer in a single call. Past a few hundred invoices per freelancer a
-deployed instance will hit Soroban read-footprint limits; a platform building
-on this contract should use the paginated accessors `invoice_count(address)` +
-`get_invoice_range(address, start, len)` rather than reading everything at once.
-`get_client_history` is likewise unbounded per client and should be paged the
-same way. Note: `invoice_count`, `get_invoice_range` and `get_client_history`
-are **not yet on the deployed testnet contract**; they exist in source only and
-require a fresh deployment to use.
+Known scaling limitation: `get_invoice_history` and `get_client_history` load every
+invoice struct for an address in a single call. Past a few hundred invoices per
+address a deployed instance will hit Soroban read-footprint limits. Platforms
+integrating this contract should use the paginated accessors (`get_invoice_range`
+and `get_client_invoice_range`) combined with the count accessors
+(`freelancer_invoice_count` and `client_invoice_count`) rather than reading all
+records at once.
+
+Pre-index migration note: Invoices created before the `ClientHistory` index was
+introduced are not indexed under `ClientHistory(client)` and will not appear in
+`get_client_history` or `get_client_invoice_range`. A contract redeployment or
+migration indexing script is required for legacy data.
 
 ## Entrypoints
 
 | Function | Caller must authorize | Arguments | Returns | Emits |
 | --- | --- | --- | --- | --- |
-| `__constructor` | deployer (deployment transaction) | `admin`, `payment_token` | `()` | — |
-| `add_allowed_token` | `admin` | `admin`, `token` | `()` | — |
+| `__constructor` | deployer (deployment transaction) | `admin`, `payment_token` | `()` | - |
+| `add_allowed_token` | `admin` | `admin`, `token` | `()` | - |
 | `create_invoice` | `freelancer` | `freelancer`, `client`, `amount` (i128), `description`, `due_date` (u64) | `u64` invoice id | `InvoiceCreated` |
 | `create_invoice_with_token` | `freelancer` | `freelancer`, `client`, `amount` (i128), `description`, `due_date` (u64), `token` | `u64` invoice id | `InvoiceCreated` |
 | `fund_invoice` | `invoice.client` | `invoice_id` | `()` | `InvoicePaid` |
 | `fund_invoice_as_payer` | supplied `payer` | `invoice_id`, `payer` | `()` | `InvoicePaid` |
-| `release_funds` | — (inert in v1) | `invoice_id` | `()` | — |
-| `get_invoice` | read-only | `invoice_id` | `Invoice` | — |
-| `get_invoice_history` | read-only | `freelancer` | `Vec<Invoice>` | — |
-| `invoice_count` | read-only | `freelancer` | `u32` | — |
-| `get_invoice_range` | read-only | `freelancer`, `start`, `len` | `Vec<Invoice>` | — |
-| `get_client_history` | read-only | `client` | `Vec<Invoice>` | — |
-| `default_token_address` | read-only | — | token `Address` | — |
-| `get_allowed_tokens` | read-only | — | `Vec<Address>` | — |
-| `version` | read-only | — | `"1_1_0"` symbol (1.1.0) | — |
+| `release_funds` | - (inert in v1) | `invoice_id` | `()` | - |
+| `get_invoice` | read-only | `invoice_id` | `Invoice` | - |
+| `get_invoice_history` | read-only | `freelancer` | `Vec<Invoice>` | - |
+| `get_invoice_range` | read-only | `freelancer`, `start` (u32), `len` (u32) | `Vec<Invoice>` | - |
+| `get_client_history` | read-only | `client` | `Vec<Invoice>` | - |
+| `get_client_invoice_range` | read-only | `client`, `start` (u32), `len` (u32) | `Vec<Invoice>` | - |
+| `invoice_count` | read-only | - | `u64` next invoice id | - |
+| `freelancer_invoice_count` | read-only | `freelancer` | `u32` invoice count | - |
+| `client_invoice_count` | read-only | `client` | `u32` invoice count | - |
+| `default_token_address` | read-only | - | token `Address` | - |
+| `get_allowed_tokens` | read-only | - | `Vec<Address>` | - |
+| `version` | read-only | - | `"1_1_0"` symbol (1.1.0) | - |
 
 Semantics worth knowing:
 
@@ -166,19 +172,35 @@ updates it in step 4.
 | 8 | `InsufficientBalance` | payer's token balance below `invoice.amount` at fund time (advisory pre-check; the token transfer remains the authoritative check) |
 | 9 | `TokenNotAllowed` | `create_invoice_with_token` called with a token outside the allowlist |
 
-Codes 6–9 were appended after the original testnet deployment, so v1 wire
-encodings of codes 1–5 are unchanged.
+Codes 6-9 were appended after the original testnet deployment, so v1 wire
+encodings of codes 1-5 are unchanged.
 
 ## Events
 
 | Event | Topics | Data |
 | --- | --- | --- |
+<<<<<<< HEAD
+| `InvoiceCreated` | `freelancer`, `client` | `id`, `amount`, `token`, `due_date` |
+| `InvoicePaid` | `freelancer`, `client` | `id`, `amount`, `token`, `paid_at` |
+=======
 | `InvoiceCreated` | `freelancer`, `client` | `id`, `amount` |
 | `InvoicePaid` | `freelancer`, `client`, `payer` | `id`, `amount`, `paid_at` |
+>>>>>>> upstream/main
 
 Marking users as topics means a platform can craft event claims
 (`?topic0=...&topic1=<freelancer>`) against Soroban RPC to listen only for one
 participant's activity, instead of scanning invoices.
+
+### Event Schema Evolution and Indexer Impact
+The event schema has been expanded so events are self-contained without requiring
+indexers to make extra `get_invoice` RPC queries:
+- `InvoiceCreated` now includes the settlement `token` and informational `due_date`.
+- `InvoicePaid` now includes the settled `token`.
+
+Compatibility note: Indexers or downstream event listeners consuming older event
+schemas should update their event parsers to expect the additional fields in the
+data payload. Contract redeployment is required for new event schemas to take
+effect on-chain.
 
 ## Build, test, verify
 

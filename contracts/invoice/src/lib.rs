@@ -76,7 +76,7 @@ enum DataKey {
 // Events -------------------------------------------------------------------
 
 #[contractevent]
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct InvoiceCreated {
     #[topic]
     pub freelancer: Address,
@@ -84,10 +84,12 @@ pub struct InvoiceCreated {
     pub client: Address,
     pub id: u64,
     pub amount: i128,
+    pub token: Address,
+    pub due_date: u64,
 }
 
 #[contractevent]
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct InvoicePaid {
     #[topic]
     pub freelancer: Address,
@@ -97,6 +99,7 @@ pub struct InvoicePaid {
     pub payer: Address,
     pub id: u64,
     pub amount: i128,
+    pub token: Address,
     pub paid_at: u64,
 }
 
@@ -250,7 +253,7 @@ impl InvoiceContract {
             id,
             freelancer: freelancer.clone(),
             client: client.clone(),
-            token,
+            token: token.clone(),
             amount,
             description,
             due_date,
@@ -289,6 +292,8 @@ impl InvoiceContract {
             client,
             id,
             amount,
+            token,
+            due_date,
         }
         .publish(&env);
 
@@ -367,6 +372,7 @@ impl InvoiceContract {
             payer,
             id: invoice.id,
             amount: invoice.amount,
+            token: invoice.token.clone(),
             paid_at: now,
         }
         .publish(&env);
@@ -475,6 +481,57 @@ impl InvoiceContract {
             }
         }
         out
+    }
+
+    /// Paginated read of invoices for a client (payer). Returns up to `len` invoices
+    /// starting at index `start` (0-indexed), oldest first.
+    pub fn get_client_invoice_range(
+        env: Env,
+        client: Address,
+        start: u32,
+        len: u32,
+    ) -> Vec<Invoice> {
+        let ids: Vec<u64> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::ClientHistory(client))
+            .unwrap_or(Vec::new(&env));
+
+        let start_idx = start as usize;
+        let len_val = len as usize;
+        let mut out: Vec<Invoice> = Vec::new(&env);
+        let end_idx = (start_idx + len_val).min(ids.len() as usize);
+
+        for i in start_idx..end_idx {
+            if let Some(inv) = env
+                .storage()
+                .persistent()
+                .get(&DataKey::Invoice(ids.get(i as u32).unwrap()))
+            {
+                out.push_back(inv);
+            }
+        }
+        out
+    }
+
+    /// Total count of invoices created by a freelancer.
+    pub fn freelancer_invoice_count(env: Env, freelancer: Address) -> u32 {
+        let ids: Vec<u64> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::History(freelancer))
+            .unwrap_or(Vec::new(&env));
+        ids.len()
+    }
+
+    /// Total count of invoices owed by a client (payer).
+    pub fn client_invoice_count(env: Env, client: Address) -> u32 {
+        let ids: Vec<u64> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::ClientHistory(client))
+            .unwrap_or(Vec::new(&env));
+        ids.len()
     }
 
     pub fn default_token_address(env: Env) -> Result<Address, Error> {

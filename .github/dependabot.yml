@@ -1,0 +1,33 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+    groups:
+      web-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: cargo
+    directory: /contracts
+    schedule:
+      interval: weekly
+    groups:
+      contract-dependencies:
+        patterns:
+          - "*"
+    ignore:
+      # Deliberately pinned in contracts/invoice/Cargo.toml for Soroban testutils compatibility.
+      - dependency-name: ed25519-dalek
+        versions:
+          - "*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - "*"

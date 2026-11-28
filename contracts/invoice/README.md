@@ -10,7 +10,9 @@ USDC).
 
 Deployed testnet instance (v1 WASM): see the addresses table in the root
 [README](../../README.md) and
-[`contracts/deployment.testnet.json`](../deployment.testnet.json).
+[`contracts/deployment.testnet.json`](../deployment.testnet.json). The
+third-party payer entrypoint and the extra `payer` event topic change the ABI,
+so they require a redeploy before the web app can call them on testnet.
 
 ## Lifecycle
 
@@ -19,10 +21,10 @@ Deployed testnet instance (v1 WASM): see the addresses table in the root
                     ┌──────────────────────────────┐
                     │  status = Pending            │
                     └──────────────┬───────────────┘
-                                   │  fund_invoice (client signs)
-                                   │  1. require_auth(client)
-                                   │  2. balance(client) >= amount
-                                   │  3. token.transfer(client → freelancer)
+                                   │  fund_invoice (client signs) or fund_invoice_as_payer (payer signs)
+                                   │  1. require_auth(payer)
+                                   │  2. balance(payer) >= amount
+                                   │  3. token.transfer(payer → freelancer)
                                    ▼
                     ┌──────────────────────────────┐
                     │  status = Paid, paid_at set  │   (terminal state)
@@ -31,7 +33,7 @@ Deployed testnet instance (v1 WASM): see the addresses table in the root
 
 There are exactly two states (`Pending`, `Paid`) and one transition. Funding is
 **instant release**: the contract never custodies funds — the transfer and the
-status flip happen atomically in the client's one transaction, so there is no
+status flip happen atomically in the payer's one transaction, so there is no
 window where the contract can lose, withhold, or revert escrowed money.
 
 `release_funds` is retained in the ABI as the seam for a future held-escrow
@@ -42,11 +44,11 @@ no funds movement** — do not build against it.
 
 | Key | Storage kind | Set by | Purpose |
 | --- | --- | --- | --- |
-| `Admin` | instance | `initialize` | initializer address; only used to authorize growing the allowlist |
-| `DefaultToken` | instance | `initialize` | token contract used when `create_invoice` is called; immutable after init |
-| `AllowedTokens` | instance | `initialize`, `add_allowed_token` | tokens an invoice may be created with; entries are never removed |
+| `Admin` | instance | `__constructor` | initializer address; only used to authorize growing the allowlist |
+| `DefaultToken` | instance | `__constructor` | token contract used when `create_invoice` is called; immutable after construction |
+| `AllowedTokens` | instance | `__constructor`, `add_allowed_token` | tokens an invoice may be created with; entries are never removed |
 | `NextId` | instance | `create_invoice` | monotonically increasing invoice counter starting at 1 |
-| `Invoice(id)` | persistent | `create_invoice`, `fund_invoice` | the full `Invoice` record |
+| `Invoice(id)` | persistent | `create_invoice`, `fund_invoice`, `fund_invoice_as_payer` | the full `Invoice` record |
 | `History(freelancer)` | persistent | `create_invoice` | per-freelancer ordered list of invoice ids |
 | `ClientHistory(client)` | persistent | `create_invoice` | per-client ordered list of invoice ids |
 
@@ -67,11 +69,12 @@ migration indexing script is required for legacy data.
 
 | Function | Caller must authorize | Arguments | Returns | Emits |
 | --- | --- | --- | --- | --- |
-| `initialize` | `admin` | `admin`, `payment_token` | `()` | - |
+| `__constructor` | deployer (deployment transaction) | `admin`, `payment_token` | `()` | - |
 | `add_allowed_token` | `admin` | `admin`, `token` | `()` | - |
 | `create_invoice` | `freelancer` | `freelancer`, `client`, `amount` (i128), `description`, `due_date` (u64) | `u64` invoice id | `InvoiceCreated` |
 | `create_invoice_with_token` | `freelancer` | `freelancer`, `client`, `amount` (i128), `description`, `due_date` (u64), `token` | `u64` invoice id | `InvoiceCreated` |
 | `fund_invoice` | `invoice.client` | `invoice_id` | `()` | `InvoicePaid` |
+| `fund_invoice_as_payer` | supplied `payer` | `invoice_id`, `payer` | `()` | `InvoicePaid` |
 | `release_funds` | - (inert in v1) | `invoice_id` | `()` | - |
 | `get_invoice` | read-only | `invoice_id` | `Invoice` | - |
 | `get_invoice_history` | read-only | `freelancer` | `Vec<Invoice>` | - |
@@ -83,7 +86,7 @@ migration indexing script is required for legacy data.
 | `client_invoice_count` | read-only | `client` | `u32` invoice count | - |
 | `default_token_address` | read-only | - | token `Address` | - |
 | `get_allowed_tokens` | read-only | - | `Vec<Address>` | - |
-| `version` | read-only | - | `"v1"` symbol | - |
+| `version` | read-only | - | `"1_1_0"` symbol (1.1.0) | - |
 
 Semantics worth knowing:
 
@@ -104,22 +107,69 @@ Semantics worth knowing:
   still be paid so late payments are not locked out.
 - Double funding is impossible: a second `fund_invoice` on a `Paid` invoice
   returns `AlreadyPaid`.
-- No allowlist for clients: any address can fund any `Pending` invoice by
-  passing its own auth. This is intentional — the invoice names who *should*
-  pay, but the chain doesn't need to restrict who *can*.
+- Only the client named on the invoice can fund it: `fund_invoice` requires
+  `invoice.client`'s auth and transfers from `invoice.client`'s balance, so a
+  third party cannot pay on the client's behalf.
+- Double funding is impossible: a second `fund_invoice` (or
+  `fund_invoice_as_payer`) on a `Paid` invoice returns `AlreadyPaid`.
+- Default rule: `fund_invoice` requires the named client's own authorization.
+- Third-party rule: `fund_invoice_as_payer` lets any other address fund a
+  `Pending` invoice, but the supplied `payer` must authorize both the
+  entrypoint and the nested token transfer. The named client is unchanged; the
+  freelancer cannot pay their own invoice this way (`InvalidParties`). This
+  supports company treasuries and agencies paying on a client's behalf without
+  weakening the default rule.
+- `get_invoice_range` never traps on extreme inputs: `start` and `len` are
+  combined with saturating arithmetic (the release profile enables
+  `overflow-checks` and the wasm target has a 32-bit `usize`), and a single
+  call returns at most **50 invoices** (`MAX_PAGE_SIZE`); a larger `len` is
+  capped, and a `start` past the end returns an empty page. The cap keeps a
+  full page inside Soroban's per-invocation ledger footprint limit.
+
+## Versioning policy
+
+`version()` returns the contract interface version as a semantic version
+symbol, `major_minor_patch`. Integrators read it to know which functions
+and error codes exist on a deployed instance.
+
+Soroban Symbols only allow `[A-Za-z0-9_]`, so the dots of a semantic
+version are written as underscores: the symbol `1_1_0` means version
+1.1.0. The return type stays a Symbol on purpose, switching it to a
+String would break every caller that reads the version.
+
+- **Major** goes up when the interface breaks: an entrypoint is removed or
+  renamed, an argument or return type changes, or an error code is removed
+  or renumbered. Existing error codes are never renumbered.
+- **Minor** goes up when the interface grows without breaking anything: a
+  new entrypoint or a new error code is added. Error codes are appended,
+  never inserted, so earlier codes keep their numbers.
+- **Patch** goes up when nothing in the interface changes: bug fixes and
+  internal changes only.
+
+The old `version()` value `"v1"` was the first release, so under this
+scheme it is 1.0.0. The interface has since gained entrypoints (for
+example `create_invoice_with_token` and `get_allowed_tokens`, which v1
+deployments do not have) and error codes 6-9, all backward-compatible
+additions, so the current version is **1_1_0** (1.1.0).
+
+There is no in-place upgrade: a version bump ships with a fresh deployment.
+The live testnet instance still runs the old WASM and reports `"v1"` until
+the next redeploy. Every deployment records the version it ships in
+`contracts/deployment.testnet.json` (`contractVersion`), which must match
+what `version()` returns on the deployed instance. The deploy walkthrough
+updates it in step 4.
 
 ## Error codes
 
 | Code | Name | Raised when |
 | --- | --- | --- |
-| 1 | `NotInitialized` | read/init state missing — contract not initialized |
-| 2 | `AlreadyInitialized` | `initialize` called twice |
+| 1 | `NotInitialized` | state missing — contract not constructed |
 | 3 | `InvoiceNotFound` | unknown invoice id |
 | 4 | `AlreadyPaid` | funding an already-`Paid` invoice |
 | 5 | `InvalidAmount` | `amount <= 0` |
 | 6 | `InvalidDescription` | empty `description` |
-| 7 | `InvalidParties` | `freelancer == client` |
-| 8 | `InsufficientBalance` | client's token balance below `invoice.amount` at fund time (advisory pre-check; the token transfer remains the authoritative check) |
+| 7 | `InvalidParties` | `freelancer == client`, or the freelancer supplied as the third-party `payer` |
+| 8 | `InsufficientBalance` | payer's token balance below `invoice.amount` at fund time (advisory pre-check; the token transfer remains the authoritative check) |
 | 9 | `TokenNotAllowed` | `create_invoice_with_token` called with a token outside the allowlist |
 
 Codes 6-9 were appended after the original testnet deployment, so v1 wire
@@ -129,8 +179,13 @@ encodings of codes 1-5 are unchanged.
 
 | Event | Topics | Data |
 | --- | --- | --- |
+<<<<<<< HEAD
 | `InvoiceCreated` | `freelancer`, `client` | `id`, `amount`, `token`, `due_date` |
 | `InvoicePaid` | `freelancer`, `client` | `id`, `amount`, `token`, `paid_at` |
+=======
+| `InvoiceCreated` | `freelancer`, `client` | `id`, `amount` |
+| `InvoicePaid` | `freelancer`, `client`, `payer` | `id`, `amount`, `paid_at` |
+>>>>>>> upstream/main
 
 Marking users as topics means a platform can craft event claims
 (`?topic0=...&topic1=<freelancer>`) against Soroban RPC to listen only for one
@@ -151,14 +206,14 @@ effect on-chain.
 
 ```bash
 cd contracts/invoice
-cargo test                              # 18 unit tests (auth + edge cases)
+cargo test                              # 32 unit tests (auth + edge cases)
 cargo fmt --all --check
 cargo clippy --all-targets
 cargo build --target wasm32v1-none --release
 # -> ../target/wasm32v1-none/release/payloop_invoice.wasm
 ```
 
-Full deploy walkthrough (keys, SAC, initialize, faucet): [../DEPLOYMENT.md](../DEPLOYMENT.md).
+Full deploy walkthrough (keys, SAC, deployment, faucet): [../DEPLOYMENT.md](../DEPLOYMENT.md).
 The contract CI (`.github/workflows/contract.yml`) runs all four steps above and
 uploads the release WASM as an artifact on every push touching `contracts/`.
 
@@ -234,7 +289,7 @@ stellar contract invoke --id CONTRACT_ID --source deployer --network testnet \
 ## Multi-token setup and v1 migration notes
 
 A fresh deployment sets the allowlist to the default token during
-`initialize`. To invoice in another stablecoin, the admin first calls
+construction (the deploy transaction). To invoice in another stablecoin, the admin first calls
 `add_allowed_token(admin, token)` once per token, then freelancers use
 `create_invoice_with_token`. The frontend reads `get_allowed_tokens` (falling
 back to `NEXT_PUBLIC_TOKENS` on v1 deployments) for its token selector, reads
@@ -247,11 +302,13 @@ fundable on the new deployment as long as their token is in the allowlist (the
 default token always is). Because there is no in-place upgrade, point clients
 at the new contract address and keep reading old invoices from the old
 contract, or replay their records off-chain; do not assume old ids exist in the
-new instance. Encoding of `Invoice` and of error codes 1–8 is unchanged.
+new instance. Encoding of `Invoice` is unchanged, and the remaining error
+codes keep their numbers (code 2, `AlreadyInitialized`, is gone with
+`initialize`).
 
 ## Reuse notes
 
-- **Token choice**: `initialize(admin, payment_token)` accepts any Soroban
+- **Token choice**: the constructor `__constructor(admin, payment_token)` accepts any Soroban
   token contract address (SAC or custom) as the default. Additional tokens are
   opt-in via `add_allowed_token`; every invoice stores the token it was created
   with and funding uses that token.
@@ -263,10 +320,53 @@ new instance. Encoding of `Invoice` and of error codes 1–8 is unchanged.
   and add a `Refunded`/`Disputed` status on the enum. Renaming the enum's
   existing variants is a breaking change for stored data; additive variants
   are not.
-- **Deploying your copy after edits** — there is no in-place upgrade path (no
+- **Deploying your copy after edits** : there is no in-place upgrade path (no
   `set_admin`/upgrade function exists by design), so applying source changes
   means a fresh deploy with config re-pointed at the new addresses. Error
-  codes 1–5 are unchanged and 6–8 are appended, so clients compiled against
+  codes 1-5 are unchanged and 6-8 are appended, so clients compiled against
   the v1 ABI keep working; the new create/fund validations are behavior
   changes rather than ABI breaks and belong in release notes when a v2
   instance ships.
+
+## Resource budgets and thresholds
+
+Soroban transactions enforce hard protocol ceilings on CPU instruction count and memory allocations. To prevent regressions where changes silently inflate resource consumption, `contracts/invoice/src/test.rs` records and asserts budget ceilings for every contract entrypoint using Soroban SDK 27 cost-estimation test utilities (`env.cost_estimate().budget()`).
+
+### Observed entrypoint baselines and thresholds
+
+| Entrypoint | Observed CPU | CPU Threshold | Observed Memory | Memory Threshold |
+| :--- | :--- | :--- | :--- | :--- |
+| `initialize` | ~75k | 200,000 | ~29k | 60,000 |
+| `add_allowed_token` | ~96k | 200,000 | ~33k | 60,000 |
+| `create_invoice` | ~212k | 500,000 | ~94k | 200,000 |
+| `create_invoice_with_token` | ~238k | 500,000 | ~95k | 200,000 |
+| `fund_invoice` | ~427k | 1,500,000 | ~154k | 300,000 |
+| `release_funds` | ~80k | 300,000 | ~48k | 100,000 |
+| `get_invoice` | ~86k | 300,000 | ~49k | 100,000 |
+| `invoice_count` | ~52k | 200,000 | ~23k | 80,000 |
+| `get_invoice_range` | ~155k | 600,000 | ~88k | 200,000 |
+| `get_client_history` | ~155k | 600,000 | ~88k | 200,000 |
+| `default_token_address` | ~53k | 200,000 | ~23k | 80,000 |
+| `get_allowed_tokens` | ~54k | 200,000 | ~23k | 80,000 |
+| `version` | ~38k | 150,000 | ~21k | 60,000 |
+| `get_invoice_history` (2 items) | ~155k | 600,000 | ~87k | 200,000 |
+
+### Scaling behavior
+
+History reads scale linearly with the number of stored invoices:
+- 1 invoice: ~103k CPU, ~58k memory
+- 3 invoices: ~205k CPU, ~115k memory
+- 6 invoices: ~361k CPU, ~200k memory
+- 10 invoices: ~578k CPU, ~315k memory
+
+For large accounts exceeding several dozen invoices, consumers must use `get_invoice_range` for pagination rather than reading complete history collections in one call.
+
+### How to adjust thresholds
+
+Thresholds are defined directly in `contracts/invoice/src/test.rs` inside `budget_regression_for_every_entrypoint` and `test_history_reads_scale_with_invoice_count`.
+
+When updating contract logic or upgrading the Soroban SDK:
+1. Run `cargo test budget -- --nocapture` to inspect newly recorded CPU and memory costs printed to the console.
+2. If legitimate logic expansion increases resource usage, adjust the threshold constant in `test.rs` to maintain approximately 1.5x to 2x headroom above baseline while keeping safeguards against runaway complexity.
+3. Update the thresholds table above to document the new baselines.
+

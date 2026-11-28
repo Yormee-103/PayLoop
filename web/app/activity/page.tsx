@@ -1,20 +1,36 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Alert, Spinner, StatusBadge, EmptyState } from "@/components/ui";
 import { ScanStatus } from "@/components/ScanStatus";
 import { AddressChip } from "@/components/AddressChip";
 import type { Invoice } from "@/lib/contract";
+import { SettledVolumeChart } from "@/components/charts/SettledVolumeChart";
+import { StatusSplitBar } from "@/components/charts/StatusSplitBar";
 import { useInvoiceScan } from "@/lib/use-invoice-scan";
 import {
   formatAmount,
   formatDate,
-  fromBaseUnits,
   humanizeDescription,
 } from "@/lib/format";
 import { config, explorer, getTokenConfig, isConfigured } from "@/lib/config";
 import { TokenAmount } from "@/components/TokenAmount";
+import { bucketSettledVolume } from "@/lib/stats";
+import { toCsv } from "@/lib/csv";
+
+const PAGE_SIZE = 10;
+
+type ActivityStatusFilter = "all" | Invoice["status"];
+type SortKey =
+  | "id"
+  | "description"
+  | "freelancer"
+  | "client"
+  | "amount"
+  | "status"
+  | "created";
+type SortDirection = "asc" | "desc";
 
 // Public activity feed: reads every invoice straight off the contract and
 // surfaces aggregate usage. Doubles as verifiable proof of wallet interactions
@@ -27,6 +43,11 @@ export default function ActivityPage() {
   );
   const { loading, error, reachedCap, scannedThrough } = scan;
   const load = scan.retry;
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ActivityStatusFilter>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("created");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [page, setPage] = useState(1);
 
   function downloadCsv() {
     // Export the loaded on-chain invoices as CSV, reusable proof of usage
@@ -42,26 +63,23 @@ export default function ActivityPage() {
       "created_at_utc",
       "paid_at_utc",
     ];
-    const esc = (s: string) => `"${s.replaceAll('"', '""')}"`;
     const rows = [...invoices]
       .sort((a, b) => Number(a.id) - Number(b.id))
-      .map((i) =>
-        [
-          i.id,
-          esc(humanizeDescription(i.description)),
-          formatAmount(i.amount, getTokenConfig(i.token).decimals),
-          i.token,
-          i.status,
-          i.freelancer,
-          i.client,
-          i.createdAt > 0n
-            ? new Date(Number(i.createdAt) * 1000).toISOString()
-            : "",
-          i.paidAt > 0n ? new Date(Number(i.paidAt) * 1000).toISOString() : "",
-        ].join(",")
-      );
-    const blob = new Blob([[header.join(","), ...rows].join("\n")], {
-      type: "text/csv",
+      .map((i) => [
+        i.id,
+        humanizeDescription(i.description),
+        formatAmount(i.amount, getTokenConfig(i.token).decimals),
+        i.token,
+        i.status,
+        i.freelancer,
+        i.client,
+        i.createdAt > 0n
+          ? new Date(Number(i.createdAt) * 1000).toISOString()
+          : "",
+        i.paidAt > 0n ? new Date(Number(i.paidAt) * 1000).toISOString() : "",
+      ]);
+    const blob = new Blob([toCsv([header, ...rows])], {
+      type: "text/csv;charset=utf-8",
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -77,6 +95,44 @@ export default function ActivityPage() {
     return (
       <Alert kind="info">The contract isn&apos;t configured yet.</Alert>
     );
+  }
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredInvoices = invoices.filter(
+    (invoice) =>
+      (statusFilter === "all" || invoice.status === statusFilter) &&
+      invoiceMatchesQuery(invoice, normalizedQuery)
+  );
+  const sortedInvoices = [...filteredInvoices].sort((a, b) =>
+    compareActivityInvoices(a, b, sortKey, sortDirection)
+  );
+  const pageCount = Math.max(
+    1,
+    Math.ceil(sortedInvoices.length / PAGE_SIZE)
+  );
+  const safePage = Math.min(Math.max(page, 1), pageCount);
+  const pageStart = (safePage - 1) * PAGE_SIZE;
+  const pageEnd = Math.min(pageStart + PAGE_SIZE, sortedInvoices.length);
+  const pagedInvoices = sortedInvoices.slice(pageStart, pageEnd);
+  const rangeStart = sortedInvoices.length === 0 ? 0 : pageStart + 1;
+  const rangeEnd = pageEnd;
+
+  function handleSort(key: SortKey) {
+    const nextDirection =
+      sortKey === key
+        ? sortDirection === "asc"
+          ? "desc"
+          : "asc"
+        : defaultSortDirection(key);
+    setSortKey(key);
+    setSortDirection(nextDirection);
+    setPage(1);
+  }
+
+  function clearFilters() {
+    setQuery("");
+    setStatusFilter("all");
+    setPage(1);
   }
 
   const paid = invoices.filter((i) => i.status === "Paid");
@@ -184,86 +240,338 @@ export default function ActivityPage() {
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-white/10">
-          {/* Table on sm+, stacked cards on mobile */}
-          <table className="hidden w-full text-sm sm:table">
-            <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-slate-400">
-              <tr>
-                <th className="px-4 py-3">#</th>
-                <th className="px-4 py-3">Description</th>
-                <th className="px-4 py-3">Freelancer</th>
-                <th className="px-4 py-3">Client</th>
-                <th className="px-4 py-3 text-right">Amount</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.map((inv) => (
-                <tr
-                  key={inv.id}
-                  className="border-t border-white/5 hover:bg-white/[0.02]"
-                >
-                  <td className="px-4 py-3 font-mono text-slate-400">
-                    {inv.id}
-                  </td>
-                  <td className="max-w-[16rem] truncate px-4 py-3">
-                    {humanizeDescription(inv.description) || "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <WalletLink addr={inv.freelancer} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <WalletLink addr={inv.client} />
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold">
-                    <TokenAmount amount={inv.amount} tokenId={inv.token} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={inv.status} />
-                  </td>
-                  <td className="px-4 py-3 text-slate-400">
-                    {formatDate(inv.createdAt)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+            <div className="flex-1">
+              <label htmlFor="activity-search" className="label">
+                Search invoices
+              </label>
+              <input
+                id="activity-search"
+                type="search"
+                className="input"
+                placeholder="Search id, description, address, amount…"
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div>
+              <label htmlFor="activity-status-filter" className="label">
+                Status
+              </label>
+              <select
+                id="activity-status-filter"
+                className="input w-auto"
+                value={statusFilter}
+                onChange={(event) => {
+                  setStatusFilter(event.target.value as ActivityStatusFilter);
+                  setPage(1);
+                }}
+              >
+                <option value="all">All statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Paid">Paid</option>
+              </select>
+            </div>
+            <p className="text-xs text-slate-400 lg:pb-2.5">
+              {filteredInvoices.length === 0
+                ? "No matching invoices"
+                : `Showing ${rangeStart}–${rangeEnd} of ${filteredInvoices.length}`}
+            </p>
+          </div>
 
-          <div className="divide-y divide-white/5 sm:hidden">
-            {invoices.map((inv) => (
-              <div key={inv.id} className="space-y-2 bg-ink-800/40 p-4">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs text-slate-400">
-                    #{inv.id}
-                  </span>
-                  <StatusBadge status={inv.status} />
-                </div>
-                <div className="flex items-baseline justify-between">
-                  <span className="truncate text-sm">
-                    {humanizeDescription(inv.description) || "—"}
-                  </span>
-                  <span className="ml-2 shrink-0 font-semibold">
-                    <TokenAmount amount={inv.amount} tokenId={inv.token} />
-                  </span>
-                </div>
-                <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs text-slate-400">
-                  <span>
-                    From <WalletLink addr={inv.freelancer} />
-                  </span>
-                  <span>
-                    To <WalletLink addr={inv.client} />
-                  </span>
-                  <span className="w-full text-slate-500">
-                    {formatDate(inv.createdAt)}
-                  </span>
+          {filteredInvoices.length === 0 ? (
+            <EmptyState
+              title="No matching invoices"
+              subtitle="Try a different search or clear the status filter."
+              action={
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="btn-ghost text-sm"
+                >
+                  Clear filters
+                </button>
+              }
+            />
+          ) : (
+            <>
+              <div className="overflow-hidden rounded-2xl border border-white/10">
+                {/* Table on sm+, stacked cards on mobile */}
+                <table className="hidden w-full text-sm sm:table">
+                  <caption className="sr-only">
+                    PayLoop invoice activity
+                  </caption>
+                  <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-slate-400">
+                    <tr>
+                      <SortHeader
+                        label="#"
+                        column="id"
+                        sortKey={sortKey}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                      <SortHeader
+                        label="Description"
+                        column="description"
+                        sortKey={sortKey}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                      <SortHeader
+                        label="Freelancer"
+                        column="freelancer"
+                        sortKey={sortKey}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                      <SortHeader
+                        label="Client"
+                        column="client"
+                        sortKey={sortKey}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                      <SortHeader
+                        label="Amount"
+                        column="amount"
+                        align="right"
+                        sortKey={sortKey}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                      <SortHeader
+                        label="Status"
+                        column="status"
+                        sortKey={sortKey}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                      <SortHeader
+                        label="Created"
+                        column="created"
+                        sortKey={sortKey}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                      />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedInvoices.map((inv) => (
+                      <tr
+                        key={inv.id}
+                        className="border-t border-white/5 hover:bg-white/[0.02]"
+                      >
+                        <td className="px-4 py-3 font-mono text-slate-400">
+                          {inv.id}
+                        </td>
+                        <td className="max-w-[16rem] truncate px-4 py-3">
+                          {humanizeDescription(inv.description) || "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <WalletLink addr={inv.freelancer} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <WalletLink addr={inv.client} />
+                        </td>
+                        <td className="px-4 py-3 text-right font-semibold">
+                          <TokenAmount amount={inv.amount} tokenId={inv.token} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusBadge status={inv.status} />
+                        </td>
+                        <td className="px-4 py-3 text-slate-400">
+                          {formatDate(inv.createdAt)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <div className="divide-y divide-white/5 sm:hidden">
+                  {pagedInvoices.map((inv) => (
+                    <div key={inv.id} className="space-y-2 bg-ink-800/40 p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-xs text-slate-400">
+                          #{inv.id}
+                        </span>
+                        <StatusBadge status={inv.status} />
+                      </div>
+                      <div className="flex items-baseline justify-between">
+                        <span className="truncate text-sm">
+                          {humanizeDescription(inv.description) || "—"}
+                        </span>
+                        <span className="ml-2 shrink-0 font-semibold">
+                          <TokenAmount amount={inv.amount} tokenId={inv.token} />
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs text-slate-400">
+                        <span>
+                          From <WalletLink addr={inv.freelancer} />
+                        </span>
+                        <span>
+                          To <WalletLink addr={inv.client} />
+                        </span>
+                        <span className="w-full text-slate-500">
+                          {formatDate(inv.createdAt)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
+
+              <nav
+                aria-label="Invoice pagination"
+                className="flex items-center justify-between gap-3"
+              >
+                <button
+                  type="button"
+                  onClick={() => setPage(safePage - 1)}
+                  disabled={safePage <= 1}
+                  className="btn-ghost text-xs"
+                >
+                  Previous
+                </button>
+                <span className="text-xs text-slate-400" aria-live="polite">
+                  Page {safePage} of {pageCount}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPage(safePage + 1)}
+                  disabled={safePage >= pageCount}
+                  className="btn-ghost text-xs"
+                >
+                  Next
+                </button>
+              </nav>
+            </>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+function invoiceMatchesQuery(invoice: Invoice, query: string): boolean {
+  if (!query) return true;
+  const token = getTokenConfig(invoice.token);
+  const amount = formatAmount(invoice.amount, token.decimals);
+  const haystack = [
+    invoice.id,
+    humanizeDescription(invoice.description),
+    invoice.freelancer,
+    invoice.client,
+    invoice.status,
+    invoice.token,
+    token.symbol,
+    amount,
+    amount.replaceAll(",", ""),
+    formatDate(invoice.createdAt),
+  ]
+    .join("\n")
+    .toLowerCase();
+  return haystack.includes(query);
+}
+
+function compareBigInt(a: bigint, b: bigint): number {
+  return a === b ? 0 : a < b ? -1 : 1;
+}
+
+function compareInvoiceIds(a: Invoice, b: Invoice): number {
+  if (/^\d+$/.test(a.id) && /^\d+$/.test(b.id)) {
+    return compareBigInt(BigInt(a.id), BigInt(b.id));
+  }
+  return a.id.localeCompare(b.id);
+}
+
+function defaultSortDirection(key: SortKey): SortDirection {
+  return key === "created" || key === "amount" || key === "id"
+    ? "desc"
+    : "asc";
+}
+
+function compareActivityInvoices(
+  a: Invoice,
+  b: Invoice,
+  key: SortKey,
+  direction: SortDirection
+): number {
+  let result = 0;
+  switch (key) {
+    case "id":
+      result = compareInvoiceIds(a, b);
+      break;
+    case "description":
+      result = humanizeDescription(a.description).localeCompare(
+        humanizeDescription(b.description)
+      );
+      break;
+    case "freelancer":
+      result = a.freelancer.localeCompare(b.freelancer);
+      break;
+    case "client":
+      result = a.client.localeCompare(b.client);
+      break;
+    case "amount":
+      result = compareBigInt(a.amount, b.amount);
+      break;
+    case "status":
+      result = a.status.localeCompare(b.status);
+      break;
+    case "created":
+      result = compareBigInt(a.createdAt, b.createdAt);
+      break;
+  }
+  if (result !== 0) return direction === "asc" ? result : -result;
+
+  result = compareBigInt(b.createdAt, a.createdAt);
+  if (result !== 0) return result;
+  return compareInvoiceIds(b, a);
+}
+
+function SortHeader({
+  label,
+  column,
+  align,
+  sortKey,
+  sortDirection,
+  onSort,
+}: {
+  label: string;
+  column: SortKey;
+  align?: "right";
+  sortKey: SortKey;
+  sortDirection: SortDirection;
+  onSort: (key: SortKey) => void;
+}) {
+  const active = sortKey === column;
+  const ariaSort: "ascending" | "descending" | "none" = active
+    ? sortDirection === "asc"
+      ? "ascending"
+      : "descending"
+    : "none";
+
+  return (
+    <th
+      scope="col"
+      aria-sort={ariaSort}
+      className={`px-4 py-3 ${align === "right" ? "text-right" : ""}`}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className="inline-flex items-center gap-1"
+      >
+        {label}
+        <span aria-hidden="true" className="text-[10px]">
+          {active ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
+        </span>
+      </button>
+    </th>
   );
 }
 
@@ -286,163 +594,6 @@ function Stat({
     <div className="card">
       <p className="text-xs text-slate-400">{label}</p>
       <p className={`mt-1 text-2xl font-bold ${color}`}>{value}</p>
-    </div>
-  );
-}
-
-type VolumeBucket = {
-  key: string;
-  label: string;
-  amount: bigint;
-  tokenId: string;
-};
-
-// Groups paid invoices by paidAt into day buckets, or week buckets (Mon-start,
-// UTC) once the paid history spans more than 3 weeks — keeps the chart legible
-// without a date-range picker. Shows only the most recent 12 buckets.
-function bucketSettledVolume(paidInvoices: Invoice[]): {
-  granularity: "day" | "week";
-  buckets: VolumeBucket[];
-} {
-  const withDates = paidInvoices.filter((i) => i.paidAt > 0n);
-  if (withDates.length === 0) return { granularity: "day", buckets: [] };
-
-  const times = withDates.map((i) => Number(i.paidAt) * 1000);
-  const spanDays = (Math.max(...times) - Math.min(...times)) / 86_400_000;
-  const granularity: "day" | "week" = spanDays > 21 ? "week" : "day";
-
-  const map = new Map<
-    string,
-    { start: Date; amount: bigint; tokenId: string }
-  >();
-  for (const inv of withDates) {
-    const d = new Date(Number(inv.paidAt) * 1000);
-    const start = new Date(
-      Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
-    );
-    if (granularity === "week") {
-      const dayOfWeek = (start.getUTCDay() + 6) % 7; // Monday = 0
-      start.setUTCDate(start.getUTCDate() - dayOfWeek);
-    }
-    const key = `${start.toISOString().slice(0, 10)}:${inv.token}`;
-    const entry = map.get(key) ?? { start, amount: 0n, tokenId: inv.token };
-    entry.amount += inv.amount;
-    map.set(key, entry);
-  }
-
-  const buckets = [...map.entries()]
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .slice(-12)
-    .map(([key, { start, amount, tokenId }]) => ({
-      key,
-      label: start.toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-      }),
-      amount,
-      tokenId,
-    }));
-
-  return { granularity, buckets };
-}
-
-function StatusSplitBar({
-  paid,
-  pending,
-}: {
-  paid: number;
-  pending: number;
-}) {
-  const total = paid + pending;
-  if (total === 0) return null;
-  const paidPct = (paid / total) * 100;
-
-  return (
-    <div className="card space-y-3">
-      <h2 className="text-sm font-semibold">Paid vs pending</h2>
-      <div className="flex h-3 overflow-hidden rounded-full bg-white/5">
-        {paid > 0 && (
-          <div
-            className="h-full bg-emerald-400"
-            style={{ width: `${paidPct}%` }}
-            title={`${paid} paid`}
-          />
-        )}
-        {pending > 0 && (
-          <div
-            className="h-full bg-amber-400"
-            style={{ width: `${100 - paidPct}%` }}
-            title={`${pending} pending`}
-          />
-        )}
-      </div>
-      <div className="flex gap-4 text-xs text-slate-400">
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-emerald-400" /> Paid (
-          {paid})
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-amber-400" /> Pending (
-          {pending})
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function SettledVolumeChart({
-  granularity,
-  buckets,
-}: {
-  granularity: "day" | "week";
-  buckets: VolumeBucket[];
-}) {
-  if (buckets.length === 0) {
-    return (
-      <div className="card">
-        <h2 className="text-sm font-semibold">
-          Settled volume by {granularity}
-        </h2>
-        <p className="mt-3 text-sm text-slate-500">
-          No paid invoices yet — settled volume charts here once invoices are
-          paid.
-        </p>
-      </div>
-    );
-  }
-
-  const humanFor = (b: VolumeBucket) =>
-    Number(fromBaseUnits(b.amount, getTokenConfig(b.tokenId).decimals));
-  const maxHuman = Math.max(...buckets.map(humanFor), 0) || 1;
-
-  return (
-    <div className="card space-y-3">
-      <h2 className="text-sm font-semibold">
-        Settled volume by {granularity} (per token)
-      </h2>
-      <div className="flex h-32 items-end gap-2">
-        {buckets.map((b) => {
-          const human = humanFor(b);
-          const pct = human > 0 ? Math.max((human / maxHuman) * 100, 4) : 0;
-          const symbol = getTokenConfig(b.tokenId).symbol;
-          return (
-            <div
-              key={b.key}
-              className="flex h-full flex-1 flex-col items-center justify-end gap-1"
-              title={`${b.label}: ${formatAmount(
-                b.amount,
-                getTokenConfig(b.tokenId).decimals
-              )} ${symbol}`}
-            >
-              <div
-                className="w-full rounded-t-md bg-brand-500"
-                style={{ height: `${pct}%` }}
-              />
-              <span className="text-[10px] text-slate-500">{b.label}</span>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }

@@ -8,18 +8,53 @@ import { useTheme } from "./ThemeProvider";
 import { LogoMark } from "./LogoMark";
 import { shortAddress } from "@/lib/format";
 
+// Minimal English fallback so this component has no dependency on the
+// locale modules. Missing keys fall back to the key-derived English text.
+const en: Record<string, string> = {
+  "nav.primary": "Primary",
+  "nav.primaryMobile": "Primary mobile",
+  "nav.dashboard": "Dashboard",
+  "nav.newInvoice": "New invoice",
+  "nav.history": "History",
+  "nav.withdraw": "Withdraw",
+  "nav.activity": "Activity",
+  "nav.help": "Help",
+  "nav.howItWorks": "How it works",
+  "nav.openWalkthrough": "Open walkthrough",
+  "nav.switchToLight": "Switch to light mode",
+  "nav.switchToDark": "Switch to dark mode",
+  "nav.toggleTheme": "Toggle theme",
+  "nav.disconnect": "Disconnect",
+  "nav.connecting": "Connecting…",
+  "nav.connect": "Connect wallet",
+  "nav.closeMenu": "Close menu",
+  "nav.openMenu": "Open menu",
+  "nav.connectionError": "Connection error",
+  "nav.installFreighter": "Install Freighter",
+  "nav.dismissError": "Dismiss error",
+};
+
+// Self-contained translator: looks up the English table and falls back to
+// the raw key. Does not import any locale provider module.
+function useLocale() {
+  return {
+    t: (key: string): string => en[key] ?? key,
+  };
+}
+
 const links = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/create", label: "New invoice" },
-  { href: "/history", label: "History" },
-  { href: "/withdraw", label: "Withdraw" },
-  { href: "/activity", label: "Activity" },
-  { href: "/help", label: "Help" },
+  { href: "/dashboard", key: "nav.dashboard" },
+  { href: "/create", key: "nav.newInvoice" },
+  { href: "/history", key: "nav.history" },
+  { href: "/withdraw", key: "nav.withdraw" },
+  { href: "/activity", key: "nav.activity" },
+  { href: "/help", key: "nav.help" },
 ];
 
 export function Navbar() {
   const { address, connect, connecting, disconnect, error, clearError, installed } = useWallet();
   const { theme, toggle } = useTheme();
+  const { t } = useLocale();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -42,7 +77,7 @@ export function Navbar() {
           <span className="text-lg tracking-tight">PayLoop</span>
         </Link>
 
-        <nav aria-label="Primary" className="hidden items-center gap-1 lg:flex">
+        <nav aria-label={t("nav.primary")} className="hidden items-center gap-1 lg:flex">
           {links.map((l) => (
             <Link
               key={l.href}
@@ -54,7 +89,7 @@ export function Navbar() {
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              {l.label}
+              {t(l.key)}
             </Link>
           ))}
         </nav>
@@ -62,16 +97,16 @@ export function Navbar() {
         <div className="flex items-center gap-2">
           <button
             onClick={openTour}
-            title="How it works"
-            aria-label="Open walkthrough"
+            title={t("nav.howItWorks")}
+            aria-label={t("nav.openWalkthrough")}
             className="btn-ghost hidden h-9 w-9 px-0 text-sm font-bold sm:grid place-items-center"
           >
             ?
           </button>
           <button
             onClick={toggle}
-            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            aria-label="Toggle theme"
+            title={theme === "dark" ? t("nav.switchToLight") : t("nav.switchToDark")}
+            aria-label={t("nav.toggleTheme")}
             className="btn-ghost h-9 w-9 px-0 text-base"
           >
             {theme === "dark" ? "☀️" : "🌙"}
@@ -80,7 +115,7 @@ export function Navbar() {
           {address ? (
             <button
               onClick={disconnect}
-              title="Click to disconnect"
+              title={t("nav.disconnect")}
               className="btn-ghost font-mono text-xs"
             >
               <span className="h-2 w-2 rounded-full bg-emerald-400" />
@@ -92,7 +127,7 @@ export function Navbar() {
               disabled={connecting}
               className="btn-primary text-sm"
             >
-              {connecting ? "Connecting…" : "Connect wallet"}
+              {connecting ? t("nav.connecting") : t("nav.connect")}
             </button>
           )}
 
@@ -100,7 +135,7 @@ export function Navbar() {
           <button
             onClick={() => setOpen((o) => !o)}
             className="btn-ghost px-2.5 lg:hidden"
-            aria-label={open ? "Close menu" : "Open menu"}
+            aria-label={open ? t("nav.closeMenu") : t("nav.openMenu")}
             aria-expanded={open}
             aria-controls="mobile-nav"
           >
@@ -113,7 +148,7 @@ export function Navbar() {
       {open && (
         <nav
           id="mobile-nav"
-          aria-label="Primary (mobile)"
+          aria-label={t("nav.primaryMobile")}
           className="border-t border-white/10 bg-ink-900/95 px-4 py-2 lg:hidden"
         >
           {links.map((l) => (
@@ -128,14 +163,14 @@ export function Navbar() {
                   : "text-slate-300 hover:bg-white/5 hover:text-white"
               }`}
             >
-              {l.label}
+              {t(l.key)}
             </Link>
           ))}
           <button
             onClick={openTour}
             className="mt-1 block w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white"
           >
-            ? How it works
+            ? {t("nav.howItWorks")}
           </button>
         </nav>
       )}
@@ -149,7 +184,7 @@ export function Navbar() {
         >
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold text-rose-300">Connection error:</span>
+              <span className="font-semibold text-rose-300">{t("nav.connectionError")}</span>
               <span>{error}</span>
               {(!installed ||
                 error.toLowerCase().includes("freighter") ||
@@ -161,13 +196,13 @@ export function Navbar() {
                   rel="noopener noreferrer"
                   className="font-semibold text-white underline hover:text-rose-100"
                 >
-                  Install Freighter →
+                  {t("nav.installFreighter")}
                 </a>
               )}
             </div>
             <button
               onClick={clearError}
-              aria-label="Dismiss error"
+              aria-label={t("nav.dismissError")}
               className="rounded p-1 text-rose-300 transition hover:bg-rose-500/20 hover:text-white"
             >
               ✕

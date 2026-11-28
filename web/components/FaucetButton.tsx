@@ -49,7 +49,11 @@ export function FaucetButton({ onDone }: { onDone?: () => void }) {
         {loading ? <Spinner /> : "Get test USDC"}
       </button>
       {msg && (
-        <span className="absolute left-0 top-full mt-1 whitespace-nowrap text-xs text-slate-400">
+        <span
+          role="status"
+          aria-live="polite"
+          className="absolute left-0 top-full mt-1 whitespace-nowrap text-xs text-slate-400"
+        >
           {msg}
         </span>
       )}

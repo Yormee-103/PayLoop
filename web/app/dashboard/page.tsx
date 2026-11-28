@@ -1,27 +1,38 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@/components/WalletProvider";
 import { ConnectPrompt } from "@/components/ConnectPrompt";
-import { InvoiceCard } from "@/components/InvoiceCard";
+import { DashboardInvoiceList } from "@/components/DashboardInvoiceList";
+import { IncomeOverview } from "@/components/IncomeOverview";
+import { ShareMenu } from "@/components/ShareMenu";
 import { Alert, EmptyState, Spinner } from "@/components/ui";
 import {
+  getAllInvoices,
   getInvoiceHistory,
   getTokenBalance,
   type Invoice,
 } from "@/lib/contract";
-import { isConfigured, tokens } from "@/lib/config";
+import {
+  deriveClientInvoices,
+  type ClientInvoiceSummary,
+} from "@/lib/client-invoices";
+import { formatAmount } from "@/lib/format";
+import { config, isConfigured, tokens } from "@/lib/config";
 import { FaucetButton } from "@/components/FaucetButton";
 import { TrustlineButton } from "@/components/TrustlineButton";
 import { TokenAmount } from "@/components/TokenAmount";
-import { useTokenMeta } from "@/lib/use-token-meta";
 import { isOverdue } from "@/lib/invoice-helpers";
 import { useAsyncResource } from "@/lib/use-async-resource";
 
 const NO_INVOICES: Invoice[] = [];
 const NO_BALANCES: Record<string, bigint> = {};
-import { ShareMenu } from "@/components/ShareMenu";
+const NO_CLIENT_SUMMARY: ClientInvoiceSummary = {
+  invoices: [],
+  count: 0,
+  totalOwed: 0n,
+  overdueCount: 0,
+};
 
 export default function DashboardPage() {
   const { address } = useWallet();
@@ -32,23 +43,33 @@ export default function DashboardPage() {
     reload: load,
   } = useAsyncResource(
     async () => {
-      const hist = await getInvoiceHistory(address as string);
-      const bals = await Promise.all(
-        tokens.map((t) => getTokenBalance(address as string, t.id).catch(() => null)),
-      );
+      const [hist, bals, scan] = await Promise.all([
+        getInvoiceHistory(address as string),
+        Promise.all(
+          tokens.map((t) =>
+            getTokenBalance(address as string, t.id).catch(() => null),
+          ),
+        ),
+        getAllInvoices(),
+      ]);
       const next: Record<string, bigint> = {};
       tokens.forEach((t, i) => {
         const value = bals[i];
         if (value !== null) next[t.id] = value;
       });
-      // Newest first.
-      return { invoices: [...hist].reverse(), balances: next };
+      return {
+        // Newest first.
+        invoices: [...hist].reverse(),
+        balances: next,
+        clientSummary: deriveClientInvoices(scan.invoices, address as string),
+      };
     },
     [address],
     { enabled: Boolean(address), fallbackError: "Failed to load your invoices." },
   );
   const invoices = data?.invoices ?? NO_INVOICES;
   const balances = data?.balances ?? NO_BALANCES;
+  const clientSummary = data?.clientSummary ?? NO_CLIENT_SUMMARY;
 
   if (!isConfigured()) {
     return (
@@ -87,7 +108,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className={`grid gap-4 ${clientSummary.count > 0 ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
         <div className="card">
           <p className="text-sm text-slate-400">Wallet balance</p>
           {tokens.map((t) => (
@@ -112,7 +133,24 @@ export default function DashboardPage() {
           <p className="text-sm text-slate-400">Awaiting payment</p>
           <TokenTotals totals={pendingTotals} tone="text-amber-300" />
         </div>
+        {clientSummary.count > 0 && (
+          <div className="card">
+            <p className="text-sm text-slate-400">Invoices to pay</p>
+            <p className="mt-1 text-2xl font-bold text-rose-300">
+              {formatAmount(clientSummary.totalOwed)}{" "}
+              <span className="text-base text-slate-400">{config.tokenSymbol}</span>
+            </p>
+            <p className="text-xs text-slate-400">
+              {clientSummary.count} pending
+              {clientSummary.overdueCount > 0 && (
+                <span className="text-red-300"> · {clientSummary.overdueCount} overdue</span>
+              )}
+            </p>
+          </div>
+        )}
       </div>
+
+      <IncomeOverview invoices={invoices} />
 
       {error && (
         <Alert kind="error">
@@ -129,6 +167,25 @@ export default function DashboardPage() {
 
       {pending.length > 0 && (
         <RemindersCard pending={pending} overdueCount={overdue.length} />
+      )}
+
+      {clientSummary.count > 0 && (
+        <section className="space-y-3" aria-labelledby="to-pay-heading">
+          <div>
+            <h2 id="to-pay-heading" className="text-lg font-semibold">
+              Invoices to pay
+            </h2>
+            <p className="text-sm text-slate-400">
+              {clientSummary.count} pending · {formatAmount(clientSummary.totalOwed)}{" "}
+              {config.tokenSymbol} owed
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {clientSummary.invoices.map((inv) => (
+              <InvoiceCard key={inv.id} invoice={inv} role="client" />
+            ))}
+          </div>
+        </section>
       )}
 
       <div className="flex items-center justify-between">
@@ -160,11 +217,7 @@ export default function DashboardPage() {
           }
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {invoices.map((inv) => (
-            <InvoiceCard key={inv.id} invoice={inv} role="freelancer" />
-          ))}
-        </div>
+        <DashboardInvoiceList invoices={invoices} />
       )}
     </div>
   );

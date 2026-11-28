@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@/components/WalletProvider";
-import { Alert, OverdueBadge, Spinner, StatusBadge, TxLink } from "@/components/ui";
+import {
+  Alert,
+  OverdueBadge,
+  Spinner,
+  StatusBadge,
+  TxLink,
+} from "@/components/ui";
 import { AddressChip } from "@/components/AddressChip";
 import { InvoicePreview } from "@/components/InvoiceDocument";
 import { TrustlineButton } from "@/components/TrustlineButton";
@@ -15,7 +21,6 @@ import {
   hasTokenTrustline,
 } from "@/lib/contract";
 import { errorMessage } from "@/lib/async-resource";
-import { buildReminderMessage, isInvoiceOwner } from "@/lib/invoice-helpers";
 import {
   formatAmount,
   formatDate,
@@ -33,7 +38,7 @@ import { trackEvent } from "@/lib/analytics";
 import { useAsyncResource } from "@/lib/use-async-resource";
 
 export default function PayClient({ id }: { id: string }) {
-  const { address, connect, connecting } = useWallet();
+  const { address, connect, connecting, wrongNetwork } = useWallet();
   const [balance, setBalance] = useState<bigint | null>(null);
   const [paying, setPaying] = useState(false);
   // Errors from actions on this page (paying, copying). Load errors come from
@@ -104,7 +109,11 @@ export default function PayClient({ id }: { id: string }) {
     setActionError(null);
     setPaying(true);
     try {
-      const res = await fundInvoice(address, invoice.id);
+      // A connected wallet other than the named client (and other than the
+      // freelancer who owns the invoice) pays through the third-party path.
+      const thirdParty =
+        address !== invoice.client && !isInvoiceOwner(address, invoice);
+      const res = await fundInvoice(address, invoice.id, thirdParty);
       setPaidHash(res.hash);
       trackEvent("invoice_paid");
       await load();
@@ -164,8 +173,7 @@ export default function PayClient({ id }: { id: string }) {
     typeof window !== "undefined"
       ? `${window.location.origin}/pay/${invoice.id}`
       : `/pay/${invoice.id}`;
-  const insufficient =
-    balance !== null && balance < invoice.amount && isClient && !isPaid;
+  const insufficient = balance !== null && balance < invoice.amount && !isPaid;
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
@@ -200,7 +208,10 @@ export default function PayClient({ id }: { id: string }) {
             label="From (freelancer)"
             value={<AddressChip address={invoice.freelancer} />}
           />
-          <Row label="To (client)" value={<AddressChip address={invoice.client} />} />
+          <Row
+            label="To (client)"
+            value={<AddressChip address={invoice.client} />}
+          />
           {invoice.dueDate > 0n && (
             <Row
               label="Due date"
@@ -263,7 +274,7 @@ export default function PayClient({ id }: { id: string }) {
                       "reminder",
                       buildReminderMessage({
                         id: invoice.id,
-                        amountLabel: `${formatAmount(invoice.amount)} ${config.tokenSymbol}`,
+                        amountLabel: `${formatAmount(invoice.amount, token.decimals)} ${token.symbol}`,
                         description: humanizeDescription(invoice.description),
                         url: payUrl,
                       }),
@@ -307,81 +318,93 @@ export default function PayClient({ id }: { id: string }) {
               >
                 {connecting ? "Connecting…" : "Connect wallet to pay"}
               </button>
-            ) : isOwner ? null : !isClient ? (
-              <Alert kind="info">
-                This invoice is addressed to <AddressChip address={invoice.client} />.
-                Connect that wallet to pay it.
-              </Alert>
-            ) : trusted === false ? (
-              <TrustlineButton
-                tokenId={invoice.token}
-                onDone={() => setTrusted(true)}
-              />
-            ) : freelancerReady === false ? (
-              <Alert kind="info">
-                <p className="font-semibold">
-                  This freelancer can&apos;t receive {token.symbol} yet.
-                </p>
-                <p className="mt-1">
-                  {shortAddress(invoice.freelancer)} needs to enable{" "}
-                  {token.symbol} before this invoice can be paid. Ask them to
-                  open PayLoop, connect this wallet, and enable the token — then
-                  refresh this page.
-                </p>
-                <button
-                  onClick={() =>
-                    hasTokenTrustline(invoice.freelancer, invoice.token)
-                      .then(setFreelancerReady)
-                      .catch(() => {})
-                  }
-                  className="btn-ghost mt-3 text-sm"
-                >
-                  Re-check
-                </button>
-              </Alert>
-            ) : (
+            ) : isOwner ? null : (
               <>
-                {insufficient && (
+                {!isClient && (
                   <Alert kind="info">
-                    <p>
-                      Your balance is{" "}
-                      {formatAmount(balance ?? 0n, token.decimals)}{" "}
-                      {token.symbol}, but this invoice is for{" "}
-                      {formatAmount(invoice.amount, token.decimals)}{" "}
-                      {token.symbol}.
-                      {invoice.token === config.tokenId
-                        ? " Grab test tokens to continue:"
-                        : ` Grab ${token.symbol} from its issuer to continue:`}
-                    </p>
-                    {invoice.token === config.tokenId && (
-                      <div className="mt-2">
-                        <FaucetButton
-                          onDone={() =>
-                            getTokenBalance(address, invoice.token)
-                              .then(setBalance)
-                              .catch(() => {})
-                          }
-                        />
-                      </div>
-                    )}
+                    This invoice is addressed to{" "}
+                    <AddressChip address={invoice.client} />. You can pay it from{" "}
+                    <AddressChip address={address} /> instead; the payment will
+                    be recorded as coming from your wallet.
                   </Alert>
                 )}
-                <button
-                  onClick={pay}
-                  disabled={paying || insufficient}
-                  className="btn-primary w-full"
-                >
-                  {paying ? (
-                    <>
-                      <Spinner /> Paying…
-                    </>
-                  ) : (
-                    `Pay ${formatAmount(invoice.amount, token.decimals)} ${token.symbol}`
-                  )}
-                </button>
-                <p className="text-center text-xs text-slate-500">
-                  Funds transfer directly to the freelancer on-chain.
-                </p>
+                {trusted === false ? (
+                  <TrustlineButton
+                    tokenId={invoice.token}
+                    onDone={() => setTrusted(true)}
+                  />
+                ) : freelancerReady === false ? (
+                  <Alert kind="info">
+                    <p className="font-semibold">
+                      This freelancer can&apos;t receive {token.symbol} yet.
+                    </p>
+                    <p className="mt-1">
+                      {shortAddress(invoice.freelancer)} needs to enable{" "}
+                      {token.symbol} before this invoice can be paid. Ask them
+                      to open PayLoop, connect this wallet, and enable the token
+                      — then refresh this page.
+                    </p>
+                    <button
+                      onClick={() =>
+                        hasTokenTrustline(invoice.freelancer, invoice.token)
+                          .then(setFreelancerReady)
+                          .catch(() => {})
+                      }
+                      className="btn-ghost mt-3 text-sm"
+                    >
+                      Re-check
+                    </button>
+                  </Alert>
+                ) : (
+                  <>
+                    {insufficient && (
+                      <Alert kind="info">
+                        <p>
+                          Your balance is{" "}
+                          {formatAmount(balance ?? 0n, token.decimals)}{" "}
+                          {token.symbol}, but this invoice is for{" "}
+                          {formatAmount(invoice.amount, token.decimals)}{" "}
+                          {token.symbol}.
+                          {invoice.token === config.tokenId
+                            ? " Grab test tokens to continue:"
+                            : ` Grab ${token.symbol} from its issuer to continue:`}
+                        </p>
+                        {invoice.token === config.tokenId && (
+                          <div className="mt-2">
+                            <FaucetButton
+                              onDone={() =>
+                                getTokenBalance(address, invoice.token)
+                                  .then(setBalance)
+                                  .catch(() => {})
+                              }
+                            />
+                          </div>
+                        )}
+                      </Alert>
+                    )}
+                    <button
+                      onClick={pay}
+                      disabled={paying || insufficient || wrongNetwork}
+                      title={
+                        wrongNetwork
+                          ? "Switch Freighter to Testnet first"
+                          : undefined
+                      }
+                      className="btn-primary w-full"
+                    >
+                      {paying ? (
+                        <>
+                          <Spinner /> Paying…
+                        </>
+                      ) : (
+                        `Pay ${formatAmount(invoice.amount, token.decimals)} ${token.symbol}`
+                      )}
+                    </button>
+                    <p className="text-center text-xs text-slate-500">
+                      Funds transfer directly to the freelancer on-chain.
+                    </p>
+                  </>
+                )}
               </>
             )}
           </>

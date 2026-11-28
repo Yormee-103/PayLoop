@@ -1,10 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@/components/WalletProvider";
 import { ConnectPrompt } from "@/components/ConnectPrompt";
-import { Alert, EmptyState, OverdueBadge, Spinner, StatusBadge } from "@/components/ui";
+import {
+  Alert,
+  EmptyState,
+  OverdueBadge,
+  Spinner,
+  StatusBadge,
+} from "@/components/ui";
 import { AddressChip } from "@/components/AddressChip";
 import { isOverdue } from "@/lib/invoice-helpers";
 import { ScanStatus } from "@/components/ScanStatus";
@@ -12,16 +18,32 @@ import { InvoicePreview } from "@/components/InvoiceDocument";
 import { ShareMenu } from "@/components/ShareMenu";
 import type { Invoice } from "@/lib/contract";
 import { useInvoiceScan } from "@/lib/use-invoice-scan";
-import {
-  formatAmount,
-  formatDate,
-  humanizeDescription,
-} from "@/lib/format";
+import { formatAmount, formatDate, humanizeDescription } from "@/lib/format";
 import { getTokenConfig, isConfigured } from "@/lib/config";
 import { TokenAmount } from "@/components/TokenAmount";
+import { fromBaseUnits } from "@/lib/format";
+import { buildCreateInvoiceUrl } from "@/lib/invoice-helpers";
 
 type StatusFilter = "all" | "Pending" | "Paid";
 type RoleFilter = "all" | "freelancer" | "client";
+type HistoryFilters = { query: string; status: StatusFilter; role: RoleFilter };
+
+const DEFAULT_FILTERS: HistoryFilters = {
+  query: "",
+  status: "all",
+  role: "all",
+};
+
+function readFiltersFromLocation(): HistoryFilters {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get("status");
+  const role = params.get("role");
+  return {
+    query: params.get("query") ?? "",
+    status: status === "Pending" || status === "Paid" ? status : "all",
+    role: role === "freelancer" || role === "client" ? role : "all",
+  };
+}
 
 // Personal invoice history with search + status/role filtering. Addresses the
 // top Level-4 feedback requests ("invoice history", "search and filtering").
@@ -35,10 +57,42 @@ export default function HistoryPage() {
     loading,
     retry: load,
   } = useInvoiceScan();
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<StatusFilter>("all");
-  const [role, setRole] = useState<RoleFilter>("all");
+  const [filters, setFilters] = useState<HistoryFilters>(DEFAULT_FILTERS);
+  const { query, status, role } = filters;
   const [preview, setPreview] = useState<Invoice | null>(null);
+
+  useEffect(() => {
+    const syncFromLocation = () => setFilters(readFiltersFromLocation());
+    syncFromLocation();
+    window.addEventListener("popstate", syncFromLocation);
+    return () => window.removeEventListener("popstate", syncFromLocation);
+  }, []);
+
+  function updateFilters(
+    next: HistoryFilters,
+    historyMode: "push" | "replace" = "push",
+  ) {
+    if (
+      next.query === filters.query &&
+      next.status === filters.status &&
+      next.role === filters.role
+    ) {
+      return;
+    }
+    setFilters(next);
+    const params = new URLSearchParams(window.location.search);
+    if (next.query) params.set("query", next.query);
+    else params.delete("query");
+    if (next.status === "all") params.delete("status");
+    else params.set("status", next.status);
+    if (next.role === "all") params.delete("role");
+    else params.set("role", next.role);
+
+    const search = params.toString();
+    const url = `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`;
+    if (historyMode === "replace") window.history.replaceState(null, "", url);
+    else window.history.pushState(null, "", url);
+  }
 
   const mine = useMemo(() => {
     if (!address) return [];
@@ -110,14 +164,17 @@ export default function HistoryPage() {
           className="input sm:max-w-xs"
           placeholder="Search id, description, address…"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) =>
+            updateFilters({ ...filters, query: e.target.value }, "replace")
+          }
           aria-label="Search invoices"
         />
         <div className="flex flex-wrap gap-2">
           {(["all", "Pending", "Paid"] as StatusFilter[]).map((s) => (
             <button
               key={s}
-              onClick={() => setStatus(s)}
+              onClick={() => updateFilters({ ...filters, status: s })}
+              aria-pressed={status === s}
               className={`btn-ghost text-xs ${
                 status === s ? "ring-1 ring-brand-400" : ""
               }`}
@@ -129,7 +186,8 @@ export default function HistoryPage() {
           {(["all", "freelancer", "client"] as RoleFilter[]).map((r) => (
             <button
               key={r}
-              onClick={() => setRole(r)}
+              onClick={() => updateFilters({ ...filters, role: r })}
+              aria-pressed={role === r}
               className={`btn-ghost text-xs ${
                 role === r ? "ring-1 ring-brand-400" : ""
               }`}
@@ -145,6 +203,7 @@ export default function HistoryPage() {
         <button
           onClick={load}
           disabled={loading}
+          aria-label="Refresh invoices"
           className="btn-ghost ml-auto text-xs"
         >
           {loading ? <Spinner /> : "Refresh"}
@@ -183,9 +242,7 @@ export default function HistoryPage() {
           action={
             <button
               onClick={() => {
-                setQuery("");
-                setStatus("all");
-                setRole("all");
+                updateFilters(DEFAULT_FILTERS);
               }}
               className="btn-ghost text-sm"
             >
@@ -234,6 +291,20 @@ export default function HistoryPage() {
                   >
                     View
                   </Link>
+                  <Link
+                    href={buildCreateInvoiceUrl({
+                      client: inv.client,
+                      amount: fromBaseUnits(
+                        inv.amount,
+                        getTokenConfig(inv.token).decimals,
+                      ),
+                      description: inv.description,
+                    })}
+                    className="btn-ghost text-xs"
+                    title="Create a similar invoice"
+                  >
+                    Duplicate
+                  </Link>
                   <button
                     onClick={() => setPreview(inv)}
                     className="btn-ghost text-xs"
@@ -242,7 +313,10 @@ export default function HistoryPage() {
                     PDF
                   </button>
                   {inv.status === "Pending" && (
-                    <ShareMenu invoice={inv} buttonClassName="btn-ghost text-xs" />
+                    <ShareMenu
+                      invoice={inv}
+                      buttonClassName="btn-ghost text-xs"
+                    />
                   )}
                 </div>
               </div>
@@ -260,5 +334,3 @@ export default function HistoryPage() {
     </div>
   );
 }
-
-

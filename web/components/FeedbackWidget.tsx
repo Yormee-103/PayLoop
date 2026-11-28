@@ -4,6 +4,27 @@ import { useState } from "react";
 import { useWallet } from "./WalletProvider";
 import { Spinner } from "./ui";
 import { errorMessage } from "@/lib/async-resource";
+import { Modal } from "./Modal";
+
+// Message catalogue. Keys are read via t(); missing keys fall back to English.
+// Locale files live in web/messages/<locale>.json once next-intl is wired up.
+export const feedbackMessages = {
+  en: {
+    pickRatingOrNote: "Pick a rating or write a note.",
+    couldNotSend: "Could not send feedback.",
+    feedbackButton: "💬 Feedback",
+    sendFeedbackLabel: "Send feedback",
+    shareFeedbackTitle: "Share feedback",
+    thanks: "Thanks — that helps a lot.",
+    close: "Close",
+  },
+} as const;
+
+export type FeedbackMessageKey = keyof (typeof feedbackMessages)["en"];
+
+export function t(key: FeedbackMessageKey, locale: "en" = "en"): string {
+  return feedbackMessages[locale][key] ?? feedbackMessages.en[key];
+}
 
 // Floating feedback button + panel, mounted app-wide. Posts to /api/feedback.
 // Required for the "basic user feedback collection" submission item; kept
@@ -14,6 +35,8 @@ export function FeedbackWidget() {
   const [rating, setRating] = useState(0);
   const [message, setMessage] = useState("");
   const [role, setRole] = useState("");
+  // Honeypot: real users never see or fill this field. Bots often do.
+  const [website, setWebsite] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "done" | "error">(
     "idle",
   );
@@ -23,7 +46,7 @@ export function FeedbackWidget() {
     e.preventDefault();
     setErr(null);
     if (!rating && !message.trim()) {
-      setErr("Pick a rating or write a note.");
+      setErr(t("pickRatingOrNote"));
       return;
     }
     setState("sending");
@@ -36,15 +59,23 @@ export function FeedbackWidget() {
           message: message.trim(),
           role,
           address,
+          website,
         }),
       });
+      if (res.status === 429) {
+        const retry = res.headers.get("Retry-After");
+        const wait = retry ? ` Try again in about ${retry} seconds.` : "";
+        throw new Error(
+          `You've sent a lot of feedback recently. Thanks for the enthusiasm!${wait}`,
+        );
+      }
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        throw new Error(d.error ?? "Could not send feedback.");
+        throw new Error(d.error ?? t("couldNotSend"));
       }
       setState("done");
     } catch (e) {
-      setErr(errorMessage(e, "Could not send feedback."));
+      setErr(errorMessage(e, t("couldNotSend")));
       setState("error");
     }
   }
@@ -55,6 +86,7 @@ export function FeedbackWidget() {
       setRating(0);
       setMessage("");
       setRole("");
+      setWebsite("");
       setState("idle");
       setErr(null);
     }, 200);
@@ -67,27 +99,22 @@ export function FeedbackWidget() {
         className="fixed bottom-4 right-4 z-40 rounded-full bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-black/30 transition hover:bg-brand-400"
         aria-haspopup="dialog"
       >
-        💬 Feedback
+        {t("feedbackButton")}
       </button>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Send feedback"
-          onClick={reset}
-        >
-          <div
-            className="card w-full max-w-md space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold">Share feedback</h2>
+      <Modal
+        open={open}
+        onClose={reset}
+        label={t("sendFeedbackLabel")}
+        backdropClassName="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
+        panelClassName="card w-full max-w-md space-y-4"
+      >
+        <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold">{t("shareFeedbackTitle")}</h2>
               <button
                 onClick={reset}
                 className="text-slate-400 hover:text-white"
-                aria-label="Close"
+                aria-label={t("close")}
               >
                 ✕
               </button>
@@ -98,9 +125,9 @@ export function FeedbackWidget() {
                 <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-emerald-500/15 text-2xl">
                   ✓
                 </div>
-                <p className="font-semibold">Thanks — that helps a lot.</p>
+                <p className="font-semibold">{t("thanks")}</p>
                 <button onClick={reset} className="btn-ghost w-full">
-                  Close
+                  {t("close")}
                 </button>
               </div>
             ) : (
@@ -156,6 +183,29 @@ export function FeedbackWidget() {
                   />
                 </div>
 
+                {/* Honeypot: hidden from users and assistive tech. */}
+                <div
+                  aria-hidden="true"
+                  style={{
+                    position: "absolute",
+                    left: "-10000px",
+                    width: "1px",
+                    height: "1px",
+                    overflow: "hidden",
+                  }}
+                >
+                  <label htmlFor="fb-website">Website</label>
+                  <input
+                    id="fb-website"
+                    name="website"
+                    type="text"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={website}
+                    onChange={(e) => setWebsite(e.target.value)}
+                  />
+                </div>
+
                 {err && <p className="text-sm text-red-300">{err}</p>}
 
                 <button
@@ -168,14 +218,12 @@ export function FeedbackWidget() {
                       <Spinner /> Sending…
                     </>
                   ) : (
-                    "Send feedback"
+                    t("sendFeedbackLabel")
                   )}
                 </button>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
+          </form>
+        )}
+      </Modal>
     </>
   );
 }

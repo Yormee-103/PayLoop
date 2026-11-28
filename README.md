@@ -8,21 +8,19 @@
 
 PayLoop is an invoicing + escrow dApp built on [Stellar](https://stellar.org)/Soroban. It lets freelancers (built with Nigerian & African freelancers working with foreign clients in mind) create an invoice, share a payment link, and receive **USDC** the moment a client funds it — settling in ~5 seconds for a fraction of a cent, instead of the 2–5 days and 5–8% that PayPal/Payoneer cost. Every paid invoice is a timestamped on-chain record that becomes the freelancer's portable income history.
 
-Open-source Soroban invoicing and escrow dApp enabling freelancers to receive USDC payments and build verifiable on-chain income records.
-
-Website: https://pay-loop-neon.vercel.app
-
-Topics: stellar, soroban, rust, usdc, escrow, invoicing, freelancers, web3, payments
-
 ---
 
 ## The core loop
 
 ```
 create_invoice  →  fund_invoice (client pays, escrow + instant release)  →  Paid, on-chain forever
+                ↘ fund_invoice_as_payer (third party pays on behalf of the client)
 ```
 
 That create → fund → release loop is PayLoop. Everything else is UX around it.
+By default the client named on the invoice must sign. A treasury or agency that
+needs to pay from a different wallet uses `fund_invoice_as_payer`; the on-chain
+event records both the named client and the wallet that actually paid.
 
 **🔗 Live app:** https://pay-loop-neon.vercel.app &nbsp;·&nbsp; **🎬 Demo video:** https://www.loom.com/share/0b08c1208df841ac96ecd61b2b05a7a9 &nbsp;·&nbsp; **🎤 Pitch deck:** [/pitch](https://pay-loop-neon.vercel.app/pitch) (web) · [PayLoop-Pitch-Deck.pptx](docs/pitch/PayLoop-Pitch-Deck.pptx)
 
@@ -107,20 +105,23 @@ Full design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Contract-level integr
 
 - **The contract is the only database.** Invoice state lives in two persistent
   storage keys per freelancer (`Invoice(id)` records and a per-freelancer
-  `History` index) plus three instance keys set once at `initialize` (admin,
+  `History` index) plus three instance keys set once by the constructor at deployment (admin,
   default token, id counter). There is no application backend holding state.
 - **Two-state lifecycle:** `Pending → Paid`, transitioned atomically inside
-  `fund_invoice` together with the client→freelancer token transfer (instant
+  `fund_invoice` (client pays) or `fund_invoice_as_payer` (authorized third
+  party pays) together with the payer→freelancer token transfer (instant
   release — the contract never custodies funds). Double payment is impossible
-  (`AlreadyPaid`), and a short client balance fails with a typed
+  (`AlreadyPaid`), and a short payer balance fails with a typed
   `InsufficientBalance` error instead of an opaque token trap.
 - **Authorization is minimal and verified:** only the freelancer being credited
-  can create their invoice, only the named client can fund it, and no admin
-  power exists after one-time initialization. Authorization enforcement is
-  covered by `MockAuth` tests (impostor and no-auth rejections).
-- **Events for indexers:** `InvoiceCreated` and `InvoicePaid` emit
-  freelancer/client as topics, so off-chain indexers can watch addresses
-  directly instead of scanning invoices.
+  can create their invoice, only the named client can fund it through the
+  default entrypoint, and an authorized third party can fund it through the
+  dedicated entrypoint. No admin power exists after one-time initialization.
+  Authorization enforcement is covered by `MockAuth` tests (impostor and
+  no-auth rejections for both funding paths).
+- **Events for indexers:** `InvoiceCreated` emits freelancer/client as topics;
+  `InvoicePaid` additionally emits the actual payer, so off-chain indexers can
+  watch addresses directly instead of scanning invoices.
 
 ---
 
@@ -129,7 +130,7 @@ Full design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Contract-level integr
 Ecosystem relevance beyond the product itself:
 
 1. **A reusable, multi-token invoice/escrow contract.** A default payment token
-   is chosen at `initialize`, extra tokens can be allowlisted and chosen per
+   is chosen at deployment (constructor argument), extra tokens can be allowlisted and chosen per
    invoice, invoices store the token they were created with, and the
    instant-release escrow pattern is documented for reuse —
    [contracts/invoice/README.md](contracts/invoice/README.md) ships the

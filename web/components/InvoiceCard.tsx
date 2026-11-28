@@ -3,13 +3,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Invoice } from "@/lib/contract";
-import { formatAmount, formatDate, humanizeDescription } from "@/lib/format";
+import {
+  formatAmount,
+  formatDate,
+  fromBaseUnits,
+  humanizeDescription,
+} from "@/lib/format";
 import { useTokenMeta } from "@/lib/use-token-meta";
 import { StatusBadge, OverdueBadge } from "./ui";
 import { AddressChip } from "./AddressChip";
 import { isOverdue } from "@/lib/invoice-helpers";
 import { InvoicePreview } from "./InvoiceDocument";
 import { ShareMenu } from "./ShareMenu";
+import { buildCreateInvoiceUrl } from "@/lib/invoice-helpers";
 
 export function InvoiceCard({
   invoice,
@@ -19,6 +25,7 @@ export function InvoiceCard({
   role: "freelancer" | "client";
 }) {
   const [copied, setCopied] = useState(false);
+  const [reminded, setReminded] = useState(false);
   const [preview, setPreview] = useState(false);
   const token = useTokenMeta(invoice.token);
 
@@ -39,6 +46,19 @@ export function InvoiceCard({
     }
   }
 
+  async function copyReminder() {
+    const text = `Hi! You have an outstanding PayLoop invoice #${invoice.id} for ${formatAmount(
+      invoice.amount,
+      token.decimals,
+    )} ${token.symbol} (${humanizeDescription(invoice.description) || "no description"}). Please pay it here: ${link()}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setReminded(true);
+      setTimeout(() => setReminded(false), 2000);
+    } catch {
+      window.location.href = link();
+    }
+  }
 
   const overdue = isOverdue(invoice);
 
@@ -71,7 +91,9 @@ export function InvoiceCard({
           </dt>
           <dd>
             <AddressChip
-              address={role === "freelancer" ? invoice.client : invoice.freelancer}
+              address={
+                role === "freelancer" ? invoice.client : invoice.freelancer
+              }
             />
           </dd>
         </div>
@@ -99,6 +121,13 @@ export function InvoiceCard({
             {copied ? "Link copied ✓" : "Copy payment link"}
           </button>
           <ShareMenu invoice={invoice} buttonClassName="btn-ghost text-sm" />
+          <button
+            onClick={copyReminder}
+            className="btn-ghost text-sm"
+            title="Copy a payment reminder message"
+          >
+            {reminded ? "Copied ✓" : "Remind"}
+          </button>
           <Link
             href={`/pay/${invoice.id}`}
             className="btn-ghost text-sm"
@@ -106,10 +135,34 @@ export function InvoiceCard({
           >
             Open
           </Link>
-          <button onClick={() => setPreview(true)} className="btn-ghost text-sm" title="Preview / save as PDF">
+          <button
+            onClick={() => setPreview(true)}
+            className="btn-ghost text-sm"
+            title="Preview / save as PDF"
+          >
             PDF
           </button>
         </div>
+      )}
+
+      <div>
+        <Link
+          href={buildCreateInvoiceUrl({
+            client: invoice.client,
+            amount: fromBaseUnits(invoice.amount, token.decimals),
+            description: invoice.description,
+          })}
+          className="btn-ghost text-sm"
+          title="Create a similar invoice"
+        >
+          Duplicate
+        </Link>
+      </div>
+
+      {invoice.status === "Pending" && role === "client" && (
+        <Link href={`/pay/${invoice.id}`} className="btn-primary w-full text-sm">
+          Pay now
+        </Link>
       )}
 
       <InvoicePreview

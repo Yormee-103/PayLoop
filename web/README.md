@@ -28,19 +28,39 @@ You'll need the [Freighter](https://freighter.app) browser extension set to
 
 ## Environment variables
 
-| Variable | Scope | Purpose |
-| --- | --- | --- |
-| `NEXT_PUBLIC_CONTRACT_ID` | public | Invoice contract address |
-| `NEXT_PUBLIC_TOKEN_ID` | public | Test USDC Stellar Asset Contract |
-| `NEXT_PUBLIC_TOKEN_DECIMALS` | public | Default token decimals (7); actual values are read from each token contract |
-| `NEXT_PUBLIC_TOKENS` | public | Optional JSON array of extra allowlisted tokens: `[{"id":"C…","issuer":"G…","symbol":"USDY","decimals":6}]`. The default token is always included. Its `symbol`/`decimals` are public fallbacks; the current values come from the token contract. |
-| `NEXT_PUBLIC_RPC_URL` | public | Soroban RPC endpoint |
-| `NEXT_PUBLIC_NETWORK_PASSPHRASE` | public | Network passphrase |
-| `USDC_ISSUER_SECRET` | **server only** | Issuer secret key for the test-USDC faucet. Never prefix with `NEXT_PUBLIC`. |
-| `FEEDBACK_WEBHOOK_URL` | **server only** | Optional. Webhook (Slack/Discord/Zapier) that `/api/feedback` forwards submissions to. |
-| `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` | mixed | Optional monitoring; build works without them |
+Testnet defaults for all public vars are baked into `.env.example`, so the app
+runs without any configuration. Override in `.env.local` to point at a
+different deployment.
 
-Testnet defaults for the public vars are baked into `.env.example`.
+### Public (browser-visible)
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `NEXT_PUBLIC_NETWORK` | `TESTNET` | Stellar network name passed to the SDK |
+| `NEXT_PUBLIC_NETWORK_PASSPHRASE` | testnet passphrase | Stellar network passphrase |
+| `NEXT_PUBLIC_RPC_URL` | `https://soroban-testnet.stellar.org` | Soroban RPC endpoint |
+| `NEXT_PUBLIC_HORIZON_URL` | `https://horizon-testnet.stellar.org` | Horizon REST endpoint, used in the trustline flow |
+| `NEXT_PUBLIC_CONTRACT_ID` | testnet contract | Invoice contract address |
+| `NEXT_PUBLIC_TOKEN_ID` | testnet SAC | Test USDC Stellar Asset Contract address |
+| `NEXT_PUBLIC_TOKEN_DECIMALS` | `7` | Decimal precision fallback; actual value is read from the token contract |
+| `NEXT_PUBLIC_TOKEN_SYMBOL` | `USDC` | Token symbol fallback; actual value is read from the token contract |
+| `NEXT_PUBLIC_TOKENS` | _(none)_ | Optional JSON array of extra allowlisted tokens: `[{"id":"C…","issuer":"G…","symbol":"USDY","decimals":6}]`. The default token is always included. |
+| `NEXT_PUBLIC_SITE_URL` | auto | Canonical URL for Open Graph meta tags. Vercel sets `VERCEL_URL` automatically; only needed for custom domains. |
+| `NEXT_PUBLIC_SENTRY_DSN` | _(none)_ | Optional Sentry DSN; build works without it |
+
+### Server-only (never expose to the browser)
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `USDC_ISSUER_SECRET` | faucet only | Issuer secret key (`S…`) for the test-USDC faucet (`/api/faucet`). Remove in production. |
+| `FEEDBACK_WEBHOOK_URL` | no | Webhook (Slack/Discord/Zapier) that `/api/feedback` forwards submissions to. Logs server-side when unset. |
+| `RATE_LIMITER_IP_LIMIT_PER_HOUR` | no | Max faucet mints per IP per hour (default: `5`) |
+| `RATE_LIMITER_GLOBAL_DAILY_CAP` | no | Max total tokens minted per day in base units (default: `100000000000` = 10 000 USDC at 7 decimals) |
+| `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | no | Upstash Redis backend for global rate limiting across instances |
+| `KV_REST_API_URL` + `KV_REST_API_TOKEN` | no | Vercel KV backend (alternative to Upstash) for global rate limiting |
+| `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` | no | Sentry source-map upload at build time |
+
+Without a Redis/KV backend, rate limiting is in-memory and best-effort (resets on each instance restart).
 
 ## Routes
 
@@ -52,6 +72,7 @@ Testnet defaults for the public vars are baked into `.env.example`.
 - `/withdraw` — mocked USDC→Naira off-ramp
 - `/activity` — public on-chain feed of every invoice + usage stats
 - `/api/faucet` — server route that mints test USDC (holds the issuer key)
+- `/api/health` — uptime probe for Soroban RPC and the invoice contract
 - `/api/feedback` — collects user feedback, forwards to an optional webhook
 
 ## The faucet
@@ -59,6 +80,38 @@ Testnet defaults for the public vars are baked into `.env.example`.
 `/api/faucet` mints test USDC to a wallet by calling `mint` on the SAC as the
 asset issuer. The issuer secret stays server-side. In production this route
 would be removed — it exists only so demo users can get testnet balances.
+
+Only `G...` account addresses are accepted; `C...` contract addresses are
+rejected with 400. Before minting, the route asks Horizon whether the wallet
+already trusts the configured test-USDC asset. A missing trustline returns 409
+with guidance to use **Enable USDC** on the dashboard; a Horizon outage returns
+502 rather than blaming the wallet. Send statuses are handled explicitly:
+`PENDING` is polled, `DUPLICATE` is checked for confirmation, `TRY_AGAIN_LATER`
+returns 503 with `Retry-After`, and all errors use fixed generic messages with
+no RPC details, XDR or secrets.
+
+## Health check
+
+`GET /api/health` reports whether the latest Soroban ledger is available and
+whether the invoice contract's `version()` read can be simulated. It returns:
+
+```json
+{
+  "status": "healthy",
+  "checks": {
+    "ledger": { "ok": true, "sequence": 12345 },
+    "contract": { "ok": true, "version": "v1" }
+  }
+}
+```
+
+A failed check returns `503` with `"status": "degraded"`; both checks are always
+attempted. Responses use `Cache-Control: no-store`, contain no error text, and
+never read any server-only secret.
+
+```bash
+curl -i http://localhost:3000/api/health
+```
 
 ## The Naira off-ramp is mocked
 
@@ -85,6 +138,7 @@ To upgrade deliberately:
    ```
 
    (`current_protocol_version` is what the network runs now.)
+
 2. Read the SDK release notes for the target version and confirm it supports
    that protocol.
 3. Change the version in `package.json` to the exact new version, then refresh
@@ -105,3 +159,7 @@ Configured for Vercel. Set the env vars in the Vercel project settings, then:
 ```bash
 vercel --prod
 ```
+
+## Bundle analysis
+
+Run `npm run analyze` to generate bundle reports in `.next/analyze/`. Baseline route sizes and findings are in [docs/bundle-size.md](../docs/bundle-size.md).

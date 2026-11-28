@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Contributing guide
+    url: https://github.com/Yormee-103/PayLoop/blob/main/CONTRIBUTING.md
+    about: How to report bugs, propose changes, and get PRs merged.
+  - name: Security policy
+    url: https://github.com/Yormee-103/PayLoop/blob/main/SECURITY.md
+    about: Please report vulnerabilities via a private security advisory, not a public issue.

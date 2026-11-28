@@ -47,7 +47,11 @@ export function Alert({
     info: "border-brand-500/30 bg-brand-500/10 text-brand-100",
   }[kind];
   return (
-    <div className={`rounded-lg border px-4 py-3 text-sm ${styles}`} role="alert">
+    <div
+      className={`rounded-lg border px-4 py-3 text-sm ${styles}`}
+      role={kind === "error" ? "alert" : "status"}
+      aria-live={kind === "error" ? "assertive" : "polite"}
+    >
       {children}
     </div>
   );

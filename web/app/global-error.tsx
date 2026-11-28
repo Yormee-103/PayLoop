@@ -28,22 +28,46 @@ export default function GlobalError({
           margin: 0,
         }}
       >
-        <div style={{ textAlign: "center" }}>
+        <div style={{ textAlign: "center", padding: 16 }}>
           <h1>Something went wrong</h1>
-          <button
-            onClick={reset}
+          <p style={{ color: "#94a3b8", fontSize: 14 }}>
+            We couldn't load this page. Please try again. If the problem keeps
+            happening, let us know and include the reference ID below.
+          </p>
+          {error.digest && (
+            <p style={{ color: "#64748b", fontSize: 12 }}>
+              Reference ID: <code>{error.digest}</code>
+            </p>
+          )}
+          <div
             style={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              gap: 12,
               marginTop: 16,
-              padding: "10px 18px",
-              borderRadius: 8,
-              border: "none",
-              background: "#3390fc",
-              color: "white",
-              cursor: "pointer",
             }}
           >
-            Try again
-          </button>
+            <button
+              onClick={reset}
+              style={{
+                padding: "10px 18px",
+                borderRadius: 8,
+                border: "none",
+                background: "#3390fc",
+                color: "white",
+                cursor: "pointer",
+              }}
+            >
+              Try again
+            </button>
+            <a href="/" style={{ color: "#3390fc", alignSelf: "center" }}>
+              Go home
+            </a>
+            <a href="/contact" style={{ color: "#3390fc", alignSelf: "center" }}>
+              Report a problem
+            </a>
+          </div>
         </div>
       </body>
     </html>

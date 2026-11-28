@@ -3,6 +3,7 @@
   "networkPassphrase": "Test SDF Network ; September 2015",
   "rpcUrl": "https://soroban-testnet.stellar.org",
   "contractId": "CAQVSBNVL7OI66IDTYCR7XL4VJKMSOYGBW5D6SWLTWTINTCQO2OGCSXS",
+  "contractVersion": "v1",
   "tokenId": "CA3DMMHKAEV555MKWZB5AFXWB6LVZRETYNUO5ZCFGSENQOC7A2FL5HNU",
   "tokenSymbol": "USDC",
   "tokenDecimals": 7,

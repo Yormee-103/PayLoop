@@ -27,19 +27,27 @@ export function fromBaseUnits(
   return frac ? `${whole}.${frac}` : whole.toString();
 }
 
+// Locale-aware grouping: "en" uses commas, "fr" uses narrow no-break spaces.
 export function formatAmount(
   base: bigint | string | number,
-  decimals: number = config.tokenDecimals
+  decimals: number = config.tokenDecimals,
+  locale: string | undefined = undefined
 ): string {
   const human = fromBaseUnits(base, decimals);
   const [whole, frac] = human.split(".");
-  const withCommas = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return frac ? `${withCommas}.${frac}` : withCommas;
+  const grouped = new Intl.NumberFormat(locale, { useGrouping: true })
+    .format(BigInt(whole));
+  return frac ? `${grouped}${decimalSeparator(locale)}${frac}` : grouped;
 }
 
-export function formatNaira(amount: number): string {
+function decimalSeparator(locale: string | undefined): string {
+  const parts = new Intl.NumberFormat(locale).formatToParts(1.1);
+  return parts.find((p) => p.type === "decimal")?.value ?? ".";
+}
+
+export function formatNaira(amount: number, locale: string = "en-NG"): string {
   if (!Number.isFinite(amount)) return "₦0.00";
-  return new Intl.NumberFormat("en-NG", {
+  return new Intl.NumberFormat(locale, {
     style: "currency",
     currency: "NGN",
   }).format(amount);
@@ -50,10 +58,10 @@ export function shortAddress(addr: string, chars = 4): string {
   return `${addr.slice(0, chars)}…${addr.slice(-chars)}`;
 }
 
-export function formatDate(unixSeconds: bigint | number): string {
+export function formatDate(unixSeconds: bigint | number, locale?: string): string {
   const n = typeof unixSeconds === "bigint" ? Number(unixSeconds) : unixSeconds;
   if (!n) return "—";
-  return new Date(n * 1000).toLocaleDateString(undefined, {
+  return new Date(n * 1000).toLocaleDateString(locale, {
     year: "numeric",
     month: "short",
     day: "numeric",

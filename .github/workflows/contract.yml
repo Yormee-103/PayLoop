@@ -8,12 +8,23 @@ on:
     branches: [main]
     paths:
       - "contracts/**"
+      - "scripts/verify-wasm-hash.sh"
+      - "rust-toolchain.toml"
       - ".github/workflows/contract.yml"
   pull_request:
     paths:
       - "contracts/**"
+      - "scripts/verify-wasm-hash.sh"
+      - "rust-toolchain.toml"
       - ".github/workflows/contract.yml"
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 defaults:
   run:
@@ -24,23 +35,30 @@ jobs:
     name: fmt · clippy · test · build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: 1.98.1
           components: rustfmt, clippy
           targets: wasm32v1-none
 
       - name: Cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             contracts/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('contracts/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('contracts/Cargo.lock', 'rust-toolchain.toml') }}
           restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: Audit dependencies
+        run: cargo audit
 
       - name: No committed test snapshots
         run: |
@@ -61,10 +79,28 @@ jobs:
         run: cargo test
 
       - name: Build optimized wasm
-        run: cargo build --target wasm32v1-none --release
+        run: cargo build --locked --target wasm32v1-none --release
+
+      - name: Calculate wasm SHA-256
+        id: wasm
+        run: |
+          wasm="target/wasm32v1-none/release/payloop_invoice.wasm"
+          sha256="$(sha256sum "$wasm" | awk '{print $1}')"
+          echo "sha256=$sha256" >> "$GITHUB_OUTPUT"
+          {
+            echo "## PayLoop invoice WASM"
+            echo
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Source commit | \`${GITHUB_SHA}\` |"
+            echo "| SHA-256 | \`${sha256}\` |"
+            echo
+            echo "Compare a local build with the deployed testnet manifest:"
+            echo "\`bash scripts/verify-wasm-hash.sh\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload wasm artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: payloop-invoice-wasm
           path: contracts/target/wasm32v1-none/release/payloop_invoice.wasm

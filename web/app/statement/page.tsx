@@ -129,7 +129,12 @@ export default function StatementPage() {
       />
 
       {scan.loading && scan.invoices.length === 0 ? (
-        <div className="card h-48 animate-pulse bg-white/5" />
+        <div
+          className="card h-48 animate-pulse bg-white/5"
+          role="status"
+          aria-live="polite"
+          aria-label="Loading statement"
+        />
       ) : statement && statement.rows.length === 0 ? (
         <EmptyState
           title="No paid invoices in this range"

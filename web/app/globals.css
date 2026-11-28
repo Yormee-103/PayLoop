@@ -64,6 +64,27 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Respect the user's reduced-motion preference (WCAG 2.1 SC 2.3.3). We use a
+   single global rule rather than per-element `motion-reduce:` utilities so that
+   every current and future animation/transition — the spin spinner, the
+   skeleton pulse and the decorative hover transitions — is neutralised in one
+   place. In-page navigation jumps instead of scrolling smoothly, and looping
+   animations run once for ~0ms and then hold their final frame, which keeps the
+   static end state (a full rotation, full opacity) rather than a mid-frame. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 body {
   @apply bg-page text-fg antialiased;
 }

@@ -196,9 +196,14 @@ export default function DashboardPage() {
       </div>
 
       {loading && invoices.length === 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div
+          className="grid gap-4 sm:grid-cols-2"
+          role="status"
+          aria-live="polite"
+          aria-label="Loading your invoices"
+        >
           {[0, 1].map((i) => (
-            <div key={i} className="card h-40 animate-pulse bg-white/5" />
+            <div key={i} className="card h-40 animate-pulse bg-white/5" aria-hidden />
           ))}
         </div>
       ) : invoices.length === 0 ? (

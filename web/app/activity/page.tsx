@@ -224,9 +224,14 @@ export default function ActivityPage() {
       />
 
       {loading && invoices.length === 0 ? (
-        <div className="space-y-3">
+        <div
+          className="space-y-3"
+          role="status"
+          aria-live="polite"
+          aria-label="Loading activity"
+        >
           {[0, 1, 2].map((i) => (
-            <div key={i} className="card h-20 animate-pulse bg-white/5" />
+            <div key={i} className="card h-20 animate-pulse bg-white/5" aria-hidden />
           ))}
         </div>
       ) : invoices.length === 0 ? (

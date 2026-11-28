@@ -43,6 +43,12 @@ export default function DashboardPage() {
     reload: load,
   } = useAsyncResource(
     async () => {
+      const hist = await getInvoiceHistory(address as string);
+      const bals = await Promise.all(
+        tokens.map((t) =>
+          getTokenBalance(address as string, t.id).catch(() => null),
+        ),
+      );
       const [hist, bals, scan] = await Promise.all([
         getInvoiceHistory(address as string),
         Promise.all(
@@ -65,7 +71,10 @@ export default function DashboardPage() {
       };
     },
     [address],
-    { enabled: Boolean(address), fallbackError: "Failed to load your invoices." },
+    {
+      enabled: Boolean(address),
+      fallbackError: "Failed to load your invoices.",
+    },
   );
   const invoices = data?.invoices ?? NO_INVOICES;
   const balances = data?.balances ?? NO_BALANCES;
@@ -198,7 +207,10 @@ export default function DashboardPage() {
       {loading && invoices.length === 0 ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {[0, 1].map((i) => (
-            <div key={i} className="card h-40 animate-pulse bg-white/5" />
+            <div
+              key={i}
+              className="card h-40 motion-reduce:animate-none animate-pulse bg-white/5"
+            />
           ))}
         </div>
       ) : invoices.length === 0 ? (
@@ -292,5 +304,3 @@ function RemindersCard({
     </div>
   );
 }
-
-

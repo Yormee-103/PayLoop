@@ -27,14 +27,9 @@ import {
   humanizeDescription,
   shortAddress,
 } from "@/lib/format";
-import { config, isConfigured } from "@/lib/config";
-import {
-  buildReminderMessage,
-  isInvoiceOwner,
-  isOverdue,
-} from "@/lib/invoice-helpers";
 import { useTokenMeta } from "@/lib/use-token-meta";
 import { trackEvent } from "@/lib/analytics";
+import { config } from "@/lib/config";
 import { useAsyncResource } from "@/lib/use-async-resource";
 
 export default function PayClient({ id }: { id: string }) {
@@ -140,7 +135,7 @@ export default function PayClient({ id }: { id: string }) {
   if (loading) {
     return (
       <div className="mx-auto max-w-lg">
-        <div className="card h-64 animate-pulse bg-white/5" />
+        <div className="card h-64 motion-reduce:animate-none animate-pulse bg-white/5" />
         <p className="mt-3 text-center text-xs text-slate-500">
           Loading invoice from chain…
         </p>

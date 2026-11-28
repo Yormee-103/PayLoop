@@ -16,6 +16,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@next/eslint-plugin-next": "^16.4.6",
     "@sentry/nextjs": "8.47.0",
     "@stellar/freighter-api": "3.0.0",
     "@stellar/stellar-sdk": "16.0.1",

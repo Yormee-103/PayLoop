@@ -38,7 +38,7 @@
 //! - `funding_whole_balance_succeeds_exactly`: Funds succeeds when client balance exactly matches invoice amount
 //! - `funding_short_balance_errors`: Prevents funding when balance is insufficient
 //! - `history_for_unknown_freelancer_is_empty`: Correctly returns empty list for new addresses
-//! - `invoice_count_returns_next_id`: Counter reflects the next invoice ID to be assigned
+//! - `invoice_count_returns_invoice_total`: Counter reflects the number of invoices created
 //! - `get_invoice_range_respects_bounds`: Pagination with start offset and length bounds
 //! - `get_invoice_range_for_unknown_freelancer_is_empty`: Pagination gracefully handles unknown freelancers
 //! - `get_invoice_range_handles_extreme_inputs_without_trapping`: Extreme start/len values return an empty or capped page instead of trapping
@@ -927,22 +927,23 @@ fn history_for_unknown_freelancer_is_empty() {
 // --- Pagination and counter tests -------------------------------------------
 
 #[test]
-fn invoice_count_returns_next_id() {
+fn invoice_count_returns_invoice_total() {
     let s = setup();
     let freelancer = Address::generate(&s.env);
     let client = Address::generate(&s.env);
 
+    // After initialize, no invoices exist yet.
     // After construction, count is 1 (next id to be assigned).
     let count = s.contract.invoice_count();
-    assert_eq!(count, 1);
+    assert_eq!(count, 0);
 
     invoice_with_id(&s, &freelancer, &client, 1_000_000);
     let count = s.contract.invoice_count();
-    assert_eq!(count, 2);
+    assert_eq!(count, 1);
 
     invoice_with_id(&s, &freelancer, &client, 2_000_000);
     let count = s.contract.invoice_count();
-    assert_eq!(count, 3);
+    assert_eq!(count, 2);
 }
 
 #[test]

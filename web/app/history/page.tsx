@@ -222,7 +222,10 @@ export default function HistoryPage() {
       {loading && mine.length === 0 ? (
         <div className="space-y-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="card h-24 animate-pulse bg-white/5" />
+            <div
+              key={i}
+              className="card h-24 motion-reduce:animate-none animate-pulse bg-white/5"
+            />
           ))}
         </div>
       ) : mine.length === 0 ? (

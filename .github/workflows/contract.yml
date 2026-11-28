@@ -73,14 +73,31 @@ jobs:
         run: cargo fmt --all --check
 
       - name: Clippy
-        run: cargo clippy --all-targets
+        run: cargo clippy --all-targets --locked -- -D warnings
 
       - name: Test
-        run: cargo test
+        run: cargo test --locked
 
       - name: Build optimized wasm
         run: cargo build --locked --target wasm32v1-none --release
 
+      - name: Report wasm size
+        run: |
+          wasm="target/wasm32v1-none/release/payloop_invoice.wasm"
+          bytes="$(wc -c < "$wasm")"
+          budget=131072
+          {
+            echo "### Wasm size"
+            echo ""
+            echo "| Artifact | Bytes | Budget |"
+            echo "| --- | --- | --- |"
+            echo "| \`payloop_invoice.wasm\` | ${bytes} | ${budget} (128 KiB) |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "payloop_invoice.wasm: ${bytes} bytes (budget: ${budget} bytes)"
+          if [ "$bytes" -gt "$budget" ]; then
+            echo "::error::Wasm size ${bytes} bytes exceeds the documented ${budget}-byte budget."
+            exit 1
+          fi
       - name: Calculate wasm SHA-256
         id: wasm
         run: |

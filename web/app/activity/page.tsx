@@ -39,7 +39,7 @@ export default function ActivityPage() {
   const scan = useInvoiceScan();
   const invoices = useMemo(
     () => [...scan.invoices].reverse(), // newest first
-    [scan.invoices]
+    [scan.invoices],
   );
   const { loading, error, reachedCap, scannedThrough } = scan;
   const load = scan.retry;
@@ -65,6 +65,23 @@ export default function ActivityPage() {
     ];
     const rows = [...invoices]
       .sort((a, b) => Number(a.id) - Number(b.id))
+      .map((i) =>
+        [
+          i.id,
+          esc(humanizeDescription(i.description)),
+          formatAmount(i.amount, getTokenConfig(i.token).decimals),
+          i.token,
+          i.status,
+          i.freelancer,
+          i.client,
+          i.createdAt > 0n
+            ? new Date(Number(i.createdAt) * 1000).toISOString()
+            : "",
+          i.paidAt > 0n ? new Date(Number(i.paidAt) * 1000).toISOString() : "",
+        ].join(","),
+      );
+    const blob = new Blob([[header.join(","), ...rows].join("\n")], {
+      type: "text/csv",
       .map((i) => [
         i.id,
         humanizeDescription(i.description),
@@ -92,9 +109,7 @@ export default function ActivityPage() {
   }
 
   if (!isConfigured()) {
-    return (
-      <Alert kind="info">The contract isn&apos;t configured yet.</Alert>
-    );
+    return <Alert kind="info">The contract isn&apos;t configured yet.</Alert>;
   }
 
   const normalizedQuery = query.trim().toLowerCase();
@@ -144,7 +159,7 @@ export default function ActivityPage() {
   });
   const paidByToken = new Map<string, bigint>();
   paid.forEach((i) =>
-    paidByToken.set(i.token, (paidByToken.get(i.token) ?? 0n) + i.amount)
+    paidByToken.set(i.token, (paidByToken.get(i.token) ?? 0n) + i.amount),
   );
   const { granularity, buckets } = bucketSettledVolume(paid);
 
@@ -226,7 +241,10 @@ export default function ActivityPage() {
       {loading && invoices.length === 0 ? (
         <div className="space-y-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="card h-20 animate-pulse bg-white/5" />
+            <div
+              key={i}
+              className="card h-20 motion-reduce:animate-none animate-pulse bg-white/5"
+            />
           ))}
         </div>
       ) : invoices.length === 0 ? (
@@ -494,6 +512,23 @@ function defaultSortDirection(key: SortKey): SortDirection {
     : "asc";
 }
 
+  const map = new Map<
+    string,
+    { start: Date; amount: bigint; tokenId: string }
+  >();
+  for (const inv of withDates) {
+    const d = new Date(Number(inv.paidAt) * 1000);
+    const start = new Date(
+      Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
+    );
+    if (granularity === "week") {
+      const dayOfWeek = (start.getUTCDay() + 6) % 7; // Monday = 0
+      start.setUTCDate(start.getUTCDate() - dayOfWeek);
+    }
+    const key = `${start.toISOString().slice(0, 10)}:${inv.token}`;
+    const entry = map.get(key) ?? { start, amount: 0n, tokenId: inv.token };
+    entry.amount += inv.amount;
+    map.set(key, entry);
 function compareActivityInvoices(
   a: Invoice,
   b: Invoice,
@@ -533,6 +568,37 @@ function compareActivityInvoices(
   return compareInvoiceIds(b, a);
 }
 
+function StatusSplitBar({ paid, pending }: { paid: number; pending: number }) {
+  const total = paid + pending;
+  if (total === 0) return null;
+  const paidPct = (paid / total) * 100;
+
+  return (
+    <div className="card space-y-3">
+      <h2 className="text-sm font-semibold">Paid vs pending</h2>
+      <div className="flex h-3 overflow-hidden rounded-full bg-white/5">
+        {paid > 0 && (
+          <div
+            className="h-full bg-emerald-400"
+            style={{ width: `${paidPct}%` }}
+            title={`${paid} paid`}
+          />
+        )}
+        {pending > 0 && (
+          <div
+            className="h-full bg-amber-400"
+            style={{ width: `${100 - paidPct}%` }}
+            title={`${pending} pending`}
+          />
+        )}
+      </div>
+      <div className="flex gap-4 text-xs text-slate-400">
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-emerald-400" /> Paid ({paid})
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-amber-400" /> Pending (
+          {pending})
 function SortHeader({
   label,
   column,
@@ -591,6 +657,33 @@ function Stat({
         ? "text-brand-300"
         : "text-slate-100";
   return (
+    <div className="card space-y-3">
+      <h2 className="text-sm font-semibold">
+        Settled volume by {granularity} (per token)
+      </h2>
+      <div className="flex h-32 items-end gap-2">
+        {buckets.map((b) => {
+          const human = humanFor(b);
+          const pct = human > 0 ? Math.max((human / maxHuman) * 100, 4) : 0;
+          const symbol = getTokenConfig(b.tokenId).symbol;
+          return (
+            <div
+              key={b.key}
+              className="flex h-full flex-1 flex-col items-center justify-end gap-1"
+              title={`${b.label}: ${formatAmount(
+                b.amount,
+                getTokenConfig(b.tokenId).decimals,
+              )} ${symbol}`}
+            >
+              <div
+                className="w-full rounded-t-md bg-brand-500"
+                style={{ height: `${pct}%` }}
+              />
+              <span className="text-[10px] text-slate-500">{b.label}</span>
+            </div>
+          );
+        })}
+      </div>
     <div className="card">
       <p className="text-xs text-slate-400">{label}</p>
       <p className={`mt-1 text-2xl font-bold ${color}`}>{value}</p>

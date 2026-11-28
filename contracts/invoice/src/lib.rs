@@ -420,12 +420,17 @@ impl InvoiceContract {
         out
     }
 
-    /// Returns the total number of invoices ever created (the next invoice id).
+    /// Returns the total number of invoices ever created. `0` before the first
+    /// invoice, then `1` after the first, and so on. Invoice ids are 1-based, so
+    /// the stored `NextId` counter is one more than the count; this saturating
+    /// subtraction keeps the function total for any stored value.
     pub fn invoice_count(env: Env) -> Result<u64, Error> {
-        env.storage()
+        let next_id: u64 = env
+            .storage()
             .instance()
             .get(&DataKey::NextId)
-            .ok_or(Error::NotInitialized)
+            .ok_or(Error::NotInitialized)?;
+        Ok(next_id.saturating_sub(1))
     }
 
     /// Paginated read of invoices for a freelancer. Returns up to `len` invoices

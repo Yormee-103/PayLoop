@@ -15,7 +15,6 @@ import {
   hasTokenTrustline,
 } from "@/lib/contract";
 import { errorMessage } from "@/lib/async-resource";
-import { buildReminderMessage, isInvoiceOwner } from "@/lib/invoice-helpers";
 import {
   formatAmount,
   formatDate,

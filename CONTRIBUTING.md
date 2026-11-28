@@ -58,6 +58,7 @@ For web changes (`web/`):
 ```bash
 cd web
 npm install
+npm test
 npm run lint
 npm run build
 ```

@@ -8,8 +8,9 @@ import {
   useState,
 } from "react";
 
-// Dark/light theme with dark as the default. The theme is persisted to
-// localStorage and applied by toggling the `.light` class on <html> so the
+// Dark/light theme. A stored preference wins; otherwise the OS color scheme
+// (prefers-color-scheme) is used, falling back to dark. The theme is persisted
+// to localStorage and applied by toggling the `.light` class on <html> so the
 // CSS overrides in globals.css take effect without a full page reload.
 
 type Theme = "dark" | "light";
@@ -29,7 +30,14 @@ function getInitialTheme(): Theme {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === "light" || stored === "dark") return stored;
   } catch {
-    // localStorage unavailable (private mode) — fall back to dark.
+    // localStorage unavailable (private mode) — fall through to OS preference.
+  }
+  try {
+    if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+      return "light";
+    }
+  } catch {
+    // matchMedia unavailable — fall back to dark.
   }
   return "dark";
 }
@@ -42,7 +50,8 @@ function applyTheme(theme: Theme) {
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("dark");
 
-  // Hydrate after mount to avoid SSR mismatch; defaults to dark.
+  // Hydrate after mount to avoid SSR mismatch; the inline script in the layout
+  // head has already applied the same class before first paint.
   useEffect(() => {
     setTheme(getInitialTheme());
   }, []);

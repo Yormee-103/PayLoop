@@ -357,6 +357,15 @@ This is called at app startup; if config is incomplete, a banner error is shown.
 
 Vercel will rebuild the app with the new config values on each deploy.
 
+## Security Headers & CSP
+
+`web/next.config.mjs` applies HTTP security headers (`Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, and `Content-Security-Policy`) to all routes via `web/lib/security-headers.mjs`.
+
+- Allowed `connect-src` origins for Soroban RPC, Horizon, and Sentry are derived automatically from `NEXT_PUBLIC_RPC_URL`, `NEXT_PUBLIC_HORIZON_URL`, and `NEXT_PUBLIC_SENTRY_DSN`, alongside the default testnet and Vercel Analytics endpoints.
+- By default, the full CSP ships in `Content-Security-Policy-Report-Only` alongside an enforcing structural policy (`frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'`). Set `CSP_ENFORCE=true` in your deployment environment to enforce the full policy directly.
+
+See [docs/security/headers.md](security/headers.md) for the complete origin inventory and maintenance checklist for future anchor (#33) or wallet (#34) integrations.
+
 ## Troubleshooting
 
 ### "No contract found" or "Network error"

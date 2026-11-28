@@ -17,6 +17,7 @@ import {
 import { config, explorer, getTokenConfig, isConfigured } from "@/lib/config";
 import { TokenAmount } from "@/components/TokenAmount";
 import { bucketSettledVolume } from "@/lib/stats";
+import { toCsv } from "@/lib/csv";
 
 const PAGE_SIZE = 10;
 
@@ -62,7 +63,6 @@ export default function ActivityPage() {
       "created_at_utc",
       "paid_at_utc",
     ];
-    const esc = (s: string) => `"${s.replaceAll('"', '""')}"`;
     const rows = [...invoices]
       .sort((a, b) => Number(a.id) - Number(b.id))
       .map((i) =>
@@ -82,6 +82,21 @@ export default function ActivityPage() {
       );
     const blob = new Blob([[header.join(","), ...rows].join("\n")], {
       type: "text/csv",
+      .map((i) => [
+        i.id,
+        humanizeDescription(i.description),
+        formatAmount(i.amount, getTokenConfig(i.token).decimals),
+        i.token,
+        i.status,
+        i.freelancer,
+        i.client,
+        i.createdAt > 0n
+          ? new Date(Number(i.createdAt) * 1000).toISOString()
+          : "",
+        i.paidAt > 0n ? new Date(Number(i.paidAt) * 1000).toISOString() : "",
+      ]);
+    const blob = new Blob([toCsv([header, ...rows])], {
+      type: "text/csv;charset=utf-8",
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

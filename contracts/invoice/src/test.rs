@@ -41,6 +41,8 @@
 //! - `invoice_count_returns_invoice_total`: Counter reflects the number of invoices created
 //! - `get_invoice_range_respects_bounds`: Pagination with start offset and length bounds
 //! - `get_invoice_range_for_unknown_freelancer_is_empty`: Pagination gracefully handles unknown freelancers
+//! - `get_invoice_range_handles_extreme_inputs_without_trapping`: Extreme start/len values return an empty or capped page instead of trapping
+//! - `get_invoice_range_caps_page_size`: Requests above the page cap return at most MAX_PAGE_SIZE invoices
 //! - `get_client_history_tracks_invoices_owed`: Tracks all invoices where an address is the client
 //! - `get_client_history_for_unknown_client_is_empty`: Client history empty for new addresses
 //!
@@ -66,6 +68,8 @@ use soroban_sdk::{
     testutils::{MockAuth, MockAuthInvoke},
     IntoVal,
 };
+extern crate alloc;
+use alloc::string::ToString;
 
 /// Deploys a token (Stellar Asset Contract) we control, mints `amount` to
 /// `to`, and returns the token address plus its admin client for minting.
@@ -990,6 +994,66 @@ fn get_invoice_range_for_unknown_freelancer_is_empty() {
 }
 
 #[test]
+fn get_invoice_range_handles_extreme_inputs_without_trapping() {
+    let s = setup();
+    let freelancer = Address::generate(&s.env);
+    let client = Address::generate(&s.env);
+
+    // Create 3 invoices for the freelancer.
+    for i in 1..=3 {
+        invoice_with_id(&s, &freelancer, &client, 1_000_000i128 * i);
+    }
+
+    // len = 0 returns an empty page.
+    let range = s.contract.get_invoice_range(&freelancer, &0, &0);
+    assert_eq!(range.len(), 0);
+
+    // start past the end returns an empty page.
+    let range = s.contract.get_invoice_range(&freelancer, &4, &2);
+    assert_eq!(range.len(), 0);
+
+    // start = u32::MAX returns an empty page instead of trapping.
+    let range = s.contract.get_invoice_range(&freelancer, &u32::MAX, &2);
+    assert_eq!(range.len(), 0);
+
+    // A very large len is capped and returns all 3 invoices.
+    let range = s.contract.get_invoice_range(&freelancer, &0, &u32::MAX);
+    assert_eq!(range.len(), 3);
+    assert_eq!(range.get(0).unwrap().id, 1);
+    assert_eq!(range.get(2).unwrap().id, 3);
+
+    // start = u32::MAX with len = u32::MAX: the end index would overflow a
+    // 32-bit usize with plain addition; it must return an empty page.
+    let range = s
+        .contract
+        .get_invoice_range(&freelancer, &u32::MAX, &u32::MAX);
+    assert_eq!(range.len(), 0);
+}
+
+#[test]
+fn get_invoice_range_caps_page_size() {
+    let s = setup();
+    let freelancer = Address::generate(&s.env);
+    let client = Address::generate(&s.env);
+
+    // Create more invoices than the page cap.
+    for i in 1..=55 {
+        invoice_with_id(&s, &freelancer, &client, 1_000_000i128 * i);
+    }
+
+    // A request for 55 invoices is capped at 50.
+    let range = s.contract.get_invoice_range(&freelancer, &0, &55);
+    assert_eq!(range.len(), 50);
+    assert_eq!(range.get(0).unwrap().id, 1);
+    assert_eq!(range.get(49).unwrap().id, 50);
+
+    // The next page picks up where the cap left off.
+    let range = s.contract.get_invoice_range(&freelancer, &50, &55);
+    assert_eq!(range.len(), 5);
+    assert_eq!(range.get(0).unwrap().id, 51);
+}
+
+#[test]
 fn get_client_history_tracks_invoices_owed() {
     let s = setup();
     let freelancer1 = Address::generate(&s.env);
@@ -1496,4 +1560,23 @@ fn test_history_reads_scale_with_invoice_count() {
         last_cpu = metrics.cpu;
         last_mem = metrics.mem;
     }
+}
+
+#[test]
+fn version_reports_the_current_semantic_version() {
+    let s = setup();
+    // The version is a semantic version, major_minor_patch, per the policy
+    // in contracts/invoice/README.md. The old "v1" value is gone.
+    assert_eq!(s.contract.version(), Symbol::new(&s.env, "1_1_0"));
+    assert_ne!(s.contract.version(), Symbol::new(&s.env, "v1"));
+}
+
+#[test]
+fn version_is_a_semantic_version() {
+    let s = setup();
+    let v = s.contract.version().to_string();
+    // Three numeric parts separated by two underscores. Dots are not
+    // allowed in a Soroban Symbol, so underscores stand in for them.
+    assert_eq!(v.split('_').count(), 3);
+    assert!(v.chars().all(|c| c.is_ascii_digit() || c == '_'));
 }

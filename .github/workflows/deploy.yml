@@ -18,6 +18,14 @@ on:
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+# Queue production deploys one at a time; never cancel one halfway through.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Vercel production deploy
@@ -26,6 +34,8 @@ jobs:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      # Pinned on purpose; bump deliberately.
+      VERCEL_CLI_VERSION: 66.6.0
     steps:
       - name: Check for Vercel credentials
         id: guard
@@ -37,18 +47,18 @@ jobs:
             echo "::notice::VERCEL_* secrets not set — production deploy is handled by Vercel's native Git integration. Skipping CLI deploy."
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.guard.outputs.enabled == 'true'
 
       - name: Setup Node
         if: steps.guard.outputs.enabled == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version-file: .nvmrc
 
       - name: Install Vercel CLI
         if: steps.guard.outputs.enabled == 'true'
-        run: npm i -g vercel@latest
+        run: npm i -g "vercel@${VERCEL_CLI_VERSION}"
 
       - name: Pull Vercel environment
         if: steps.guard.outputs.enabled == 'true'

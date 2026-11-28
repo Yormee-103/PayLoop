@@ -12,33 +12,47 @@ import { Modal } from "./Modal";
 // product walkthrough and a help section (users 2, 6, 8).
 
 const steps = [
-  {
-    title: "Connect your wallet",
-    body: "Install the Freighter browser extension, switch it to Testnet, then connect from the button in the top-right. Your wallet is your PayLoop account.",
-    href: null,
-    cta: null,
-  },
-  {
-    title: "Enable USDC & grab test funds",
-    body: "Open the Dashboard and tap “Enable USDC” once — this lets your wallet hold the token. Then “Get test USDC” to mint 500 test tokens for free.",
-    href: "/dashboard",
-    cta: "Open dashboard",
-  },
-  {
-    title: "Create an invoice & share the link",
-    body: "New invoice → enter your client's wallet, amount and description → preview it, then create. Copy the payment link and send it to your client.",
-    href: "/create",
-    cta: "Create an invoice",
-  },
-  {
-    title: "Your client pays in one click",
-    body: "The client opens the link, connects their wallet, and pays. USDC lands with you in seconds — recorded on-chain forever.",
-    href: "/history",
-    cta: "See your history",
-  },
-];
+  { key: "connect", href: null, hasCta: false },
+  { key: "usdc", href: "/dashboard", hasCta: true },
+  { key: "invoice", href: "/create", hasCta: true },
+  { key: "pay", href: "/history", hasCta: true },
+] as const;
 
 const STORAGE_KEY = "payloop.tour.done";
+
+// Minimal English copy so this component has no dependency on the locale
+// modules (the LocaleProvider path does not exist in this tree).
+const en: Record<string, string> = {
+  "tour.dialogLabel": "Product walkthrough",
+  "tour.close": "Close walkthrough",
+  "tour.stepOf": "Step {step} of {total}",
+  "tour.skip": "Skip",
+  "tour.back": "Back",
+  "tour.next": "Next",
+  "tour.getStarted": "Get started",
+  "tour.steps.connect.title": "Connect your wallet",
+  "tour.steps.connect.body": "Install Freighter, switch it to Testnet, then connect from the top-right corner.",
+  "tour.steps.usdc.title": "Enable USDC and get test funds",
+  "tour.steps.usdc.body": "Enable USDC once on the Dashboard, then mint free test USDC from the faucet.",
+  "tour.steps.usdc.cta": "Go to Dashboard",
+  "tour.steps.invoice.title": "Create an invoice",
+  "tour.steps.invoice.body": "Describe the work, enter your client's wallet address and an amount in USDC.",
+  "tour.steps.invoice.cta": "Create an invoice",
+  "tour.steps.pay.title": "Get paid",
+  "tour.steps.pay.body": "Share the payment link. Your client pays in one click and the invoice flips to Paid.",
+  "tour.steps.pay.cta": "View history",
+};
+
+function t(key: string, vars?: Record<string, string | number>): string {
+  // Missing keys fall back to the English copy, then to the raw key.
+  let out = en[key] ?? key;
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) {
+      out = out.replace(`{${k}}`, String(v));
+    }
+  }
+  return out;
+}
 
 export function OnboardingTour() {
   const [open, setOpen] = useState(false);
@@ -65,30 +79,33 @@ export function OnboardingTour() {
 
   const s = steps[step];
   const isLast = step === steps.length - 1;
+  const title = t(`tour.steps.${s.key}.title`);
+  const body = t(`tour.steps.${s.key}.body`);
+  const cta = s.hasCta ? t(`tour.steps.${s.key}.cta`) : null;
 
   return (
     <Modal
       open={open}
       onClose={close}
-      label="Welcome to PayLoop"
+      label={t("tour.dialogLabel")}
       panelClassName="card w-full max-w-md space-y-4"
     >
       <div className="flex items-center justify-between">
           <span className="badge bg-brand-500/15 text-brand-200">
-            Step {step + 1} of {steps.length}
+            {t("tour.stepOf", { step: step + 1, total: steps.length })}
           </span>
           <button
             onClick={close}
             className="text-slate-400 hover:text-white"
-            aria-label="Close tour"
+            aria-label={t("tour.close")}
           >
             ✕
           </button>
         </div>
 
         <div>
-          <h2 className="text-xl font-bold">{s.title}</h2>
-          <p className="mt-2 text-sm text-slate-400">{s.body}</p>
+          <h2 className="text-xl font-bold">{title}</h2>
+          <p className="mt-2 text-sm text-slate-400">{body}</p>
         </div>
 
         <div className="flex items-center justify-between gap-2">
@@ -97,7 +114,7 @@ export function OnboardingTour() {
             className="btn-ghost text-sm"
             disabled={step === 0}
           >
-            Skip
+            {t("tour.skip")}
           </button>
           <div className="flex gap-1.5">
             {steps.map((_, i) => (
@@ -115,28 +132,28 @@ export function OnboardingTour() {
               className="btn-ghost text-sm"
               disabled={step === 0}
             >
-              Back
+              {t("tour.back")}
             </button>
             {isLast ? (
               <button onClick={close} className="btn-primary text-sm">
-                Get started
+                {t("tour.getStarted")}
               </button>
             ) : (
               <button
                 onClick={() => setStep((n) => Math.min(steps.length - 1, n + 1))}
                 className="btn-primary text-sm"
               >
-                Next
+                {t("tour.next")}
               </button>
             )}
           </div>
         </div>
 
-      {s.href && s.cta && (
-        <Link href={s.href} onClick={close} className="btn-ghost w-full text-sm">
-          {s.cta} →
-        </Link>
-      )}
+        {s.href && cta && (
+          <Link href={s.href} onClick={close} className="btn-ghost w-full text-sm">
+            {cta} →
+          </Link>
+        )}
     </Modal>
   );
 }

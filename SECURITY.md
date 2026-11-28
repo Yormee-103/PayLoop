@@ -72,6 +72,9 @@ the issue before public disclosure.
   double-payment rejection, balance pre-check) are defined in
   [contracts/invoice/README.md](contracts/invoice/README.md#entrypoints) and
   enforced in `contracts/invoice/src/lib.rs`.
+- Testnet-only shared-state caveat anyone can verify on-chain: the faucet
+  mints freely (test asset). This does not imply mainnet equivalence. Funding
+  is not open to anyone: only the client named on an invoice can fund it.
 - Funding authorization: the default `fund_invoice` entrypoint requires the
   named client's own signature. `fund_invoice_as_payer` is the deliberate opt-in
   for a company treasury or agency paying from a different wallet: the supplied

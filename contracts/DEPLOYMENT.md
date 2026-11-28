@@ -104,6 +104,18 @@ stellar contract deploy \
 | `NEXT_PUBLIC_RPC_URL` | `https://soroban-testnet.stellar.org` |
 | `NEXT_PUBLIC_NETWORK_PASSPHRASE` | `Test SDF Network ; September 2015` |
 
+Also update `deployment.testnet.json` with the new `contractId`,
+`wasmHash`, `deployedAt` date, and `contractVersion`, which must match what
+`version()` returns on the new instance:
+
+```bash
+stellar contract invoke \
+  --id CONTRACT_ID \
+  --source deployer \
+  --network testnet \
+  -- version
+```
+
 ## 5. Faucet for onboarded users (mint test USDC)
 
 The app exposes a "Get test USDC" button that calls a backend mint. That backend

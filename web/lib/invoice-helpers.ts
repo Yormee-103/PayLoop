@@ -30,6 +30,14 @@ export function dueDateError(
   return null;
 }
 
+export function dueDateToUnix(value: string): bigint {
+  if (!DATE_INPUT.test(value)) return 0n;
+  const [year, month, day] = value.split("-").map(Number);
+  const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+  if (todayDateInputValue(endOfDay) !== value) return 0n;
+  return BigInt(Math.floor(endOfDay.getTime() / 1000));
+}
+
 /**
  * Document title used while an invoice sheet is open, so "Save as PDF" proposes
  * a meaningful filename (issue #67): `PayLoop-Invoice-<id>`, or
@@ -93,10 +101,9 @@ export function isOverdue(
   return (
     invoice.status === "Pending" &&
     invoice.dueDate > 0n &&
-    invoice.dueDate * 1000n < BigInt(Math.floor(nowMs))
+    BigInt(Math.floor(nowMs / 1000)) > invoice.dueDate
   );
 }
-
 
 // Converts a raw token `balance` read into a bigint. A missing value is an
 // error, not a zero balance (issue #60): only an explicit 0 means "0".
@@ -105,6 +112,8 @@ export function parseTokenBalance(raw: unknown): bigint {
     throw new Error("Could not read token balance.");
   }
   return BigInt(String(raw));
+}
+
 const U64_MAX = 18446744073709551615n;
 
 // True when `id` is a canonical invoice id: digits only and at most u64::MAX

@@ -17,6 +17,13 @@ use soroban_sdk::{
     String, Symbol, Vec,
 };
 
+/// Maximum number of invoices one `get_invoice_range` call returns.
+///
+/// The page size is capped so a single read cannot exceed Soroban resource
+/// limits and callers can rely on the bound. Requests for more are silently
+/// capped, never rejected.
+const MAX_PAGE_SIZE: u32 = 50;
+
 #[contracttype]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum InvoiceStatus {
@@ -428,6 +435,13 @@ impl InvoiceContract {
 
     /// Paginated read of invoices for a freelancer. Returns up to `len` invoices
     /// starting at index `start` (0-indexed), oldest first.
+    ///
+    /// A single call returns at most [`MAX_PAGE_SIZE`] invoices; a larger
+    /// `len` is capped. The end index is computed with saturating arithmetic:
+    /// on the 32-bit wasm target `usize` is 32 bits and the release profile
+    /// enables `overflow-checks`, so `start + len` would trap on extreme
+    /// inputs with plain addition. With saturation those inputs return an
+    /// empty or capped page instead.
     pub fn get_invoice_range(env: Env, freelancer: Address, start: u32, len: u32) -> Vec<Invoice> {
         let ids: Vec<u64> = env
             .storage()
@@ -436,9 +450,9 @@ impl InvoiceContract {
             .unwrap_or(Vec::new(&env));
 
         let start_idx = start as usize;
-        let len_val = len as usize;
+        let len_val = len.min(MAX_PAGE_SIZE) as usize;
         let mut out: Vec<Invoice> = Vec::new(&env);
-        let end_idx = (start_idx + len_val).min(ids.len() as usize);
+        let end_idx = start_idx.saturating_add(len_val).min(ids.len() as usize);
 
         for i in start_idx..end_idx {
             if let Some(inv) = env
@@ -477,8 +491,16 @@ impl InvoiceContract {
         Self::allowed_tokens(&env)
     }
 
+    /// The contract interface version, as a semantic version symbol.
+    ///
+    /// Soroban Symbols only allow `[A-Za-z0-9_]`, so the dots of a semantic
+    /// version are written as underscores: this is 1.1.0. The old value
+    /// `"v1"` was the first release, so under this scheme it is 1.0.0. The
+    /// interface has since gained entrypoints and error codes without
+    /// breaking anything, so this is 1.1.0. The full policy (what each bump
+    /// means) lives in `contracts/invoice/README.md`.
     pub fn version(env: Env) -> Symbol {
-        Symbol::new(&env, "v1")
+        Symbol::new(&env, "1_1_0")
     }
 
     fn default_token(env: &Env) -> Result<Address, Error> {

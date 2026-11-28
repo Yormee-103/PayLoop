@@ -8,7 +8,11 @@ import { Alert, Spinner, TxLink } from "@/components/ui";
 import { InvoicePreview } from "@/components/InvoiceDocument";
 import { createInvoice, getAllowedTokenIds } from "@/lib/contract";
 import { errorMessage } from "@/lib/async-resource";
-import { dueDateError, todayDateInputValue } from "@/lib/invoice-helpers";
+import {
+  dueDateError,
+  dueDateToUnix,
+  todayDateInputValue,
+} from "@/lib/invoice-helpers";
 import { toBaseUnits } from "@/lib/format";
 import { config, getTokenConfig, isConfigured, tokens } from "@/lib/config";
 import { useTokenMeta } from "@/lib/use-token-meta";
@@ -211,9 +215,7 @@ export default function CreatePage() {
             token: tokenId,
             amount: toBaseUnits(amount, token.decimals),
             description: description.trim(),
-            dueDate: dueDate
-              ? BigInt(Math.floor(new Date(dueDate).getTime() / 1000))
-              : 0n,
+            dueDate: dueDateToUnix(dueDate),
             status: "Pending" as const,
             createdAt: 0n,
             paidAt: 0n,
@@ -250,9 +252,7 @@ export default function CreatePage() {
     setSubmitting(true);
     setError(null);
     try {
-      const dueUnix = dueDate
-        ? BigInt(Math.floor(new Date(dueDate).getTime() / 1000))
-        : 0n;
+      const dueUnix = dueDateToUnix(dueDate);
       const res = await createInvoice({
         freelancer: address,
         client,

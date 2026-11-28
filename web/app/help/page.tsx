@@ -4,6 +4,9 @@ import type { Metadata } from "next";
 // In-app Help/FAQ. Static server component (no wallet needed) with native
 // <details> accordions. Complements the first-run tour; answers the recurring
 // questions from the Level-5 survey ("a more detailed help section").
+//
+// Copy here is the English fallback locale. This page does not import the
+// i18n layer directly, so it builds independently of the locale modules.
 
 export const metadata: Metadata = {
   title: "Help",

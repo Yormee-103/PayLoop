@@ -15,6 +15,10 @@ type HttpKvClient = {
   request(method: string, key: string, ...args: unknown[]): Promise<unknown>;
 };
 
+export interface FeedbackRateLimitConfig {
+  maxPerMinute: number;
+}
+
 export interface RateLimiter {
   /**
    * Check if IP+address combination has hit rate limits.
@@ -31,6 +35,43 @@ export interface RateLimiter {
    * Get current daily mint total (for monitoring).
    */
   getDailyTotal(): Promise<bigint>;
+}
+
+export const DEFAULT_FEEDBACK_RATE_LIMIT: FeedbackRateLimitConfig = {
+  maxPerMinute: 5,
+};
+
+/**
+ * Simple fixed-window per-IP rate limiter for feedback submissions.
+ * Returns null if allowed, or retry-after seconds if limited.
+ */
+export class FeedbackIpRateLimiter {
+  private windows = new Map<string, { start: number; count: number }>();
+  private windowMs = 60 * 1000;
+  private config: FeedbackRateLimitConfig;
+
+  constructor(config: FeedbackRateLimitConfig = DEFAULT_FEEDBACK_RATE_LIMIT) {
+    this.config = config;
+  }
+
+  check(ip: string): number | null {
+    const now = Date.now();
+    if (this.windows.size > 10_000) {
+      for (const [k, v] of this.windows) {
+        if (now - v.start >= this.windowMs) this.windows.delete(k);
+      }
+    }
+    const entry = this.windows.get(ip);
+    if (!entry || now - entry.start >= this.windowMs) {
+      this.windows.set(ip, { start: now, count: 1 });
+      return null;
+    }
+    if (entry.count >= this.config.maxPerMinute) {
+      return Math.max(1, Math.ceil((this.windowMs - (now - entry.start)) / 1000));
+    }
+    entry.count += 1;
+    return null;
+  }
 }
 
 const DEFAULT_CONFIG: RateLimiterConfig = {
@@ -326,6 +367,18 @@ export class VercelKVRateLimiter implements RateLimiter {
 /**
  * Factory to create the appropriate rate limiter based on env vars.
  */
+export const MAX_FEEDBACK_BODY_BYTES = 4 * 1024;
+
+/**
+ * Neutralise mentions (@channel, @everyone, @here) and links in forwarded text.
+ */
+export function sanitizeWebhookText(input: string): string {
+  return input
+    .replace(/@(channel|everyone|here)\b/gi, "@\u200b$1")
+    .replace(/<!(channel|everyone|here)[^>]*>/gi, "[$1]")
+    .replace(/https?:\/\//gi, (m) => m.replace("://", ":\u200b//"));
+}
+
 export function createRateLimiter(
   config: RateLimiterConfig = DEFAULT_CONFIG,
 ): RateLimiter {
